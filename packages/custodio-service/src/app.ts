@@ -1,0 +1,78 @@
+import { join } from 'node:path'
+import type { FastifyInstance } from 'fastify'
+import type { Logger as PinoLogger } from 'pino'
+import { buildServer } from './api/server.js'
+import { ServiceConfigSchema, type ServiceConfigInput } from './config.js'
+import type { Clock, Copier, DiskProbe, FileSystemPort, Logger, Meter, SmartReader, VolumeReader } from './core/ports/system.js'
+import { silentLogger } from './core/ports/system.js'
+import { createServices, type Services } from './core/services.js'
+import { SqliteIdempotencyStore } from './db/idempotency.js'
+import { SqliteStore } from './db/store.js'
+
+export const SERVICE_VERSION = '0.1.0'
+
+export interface Adapters {
+  clock: Clock
+  disks: DiskProbe
+  smart: SmartReader
+  volumes: VolumeReader
+  fs: FileSystemPort
+  copier: Copier
+  meter?: Meter
+  random?: () => number
+}
+
+export interface CustodioService {
+  store: SqliteStore
+  services: Services
+  app: FastifyInstance
+  start(): Promise<string>
+  stop(): Promise<void>
+}
+
+export function pinoAdapter(log: PinoLogger): Logger {
+  return {
+    info: (message, data) => log.info(data ?? {}, message),
+    warn: (message, data) => log.warn(data ?? {}, message),
+    error: (message, data) => log.error(data ?? {}, message)
+  }
+}
+
+export interface CreateOptions {
+  logger?: PinoLogger
+  // Tests drive the scheduler by hand; the real service runs its loop
+  runScheduler?: boolean
+}
+
+export function createService(input: ServiceConfigInput, adapters: Adapters, options: CreateOptions = {}): CustodioService {
+  const config = ServiceConfigSchema.parse(input)
+  const store = new SqliteStore(join(config.dataDir, 'custodio.db'))
+  const services = createServices({ store, ...adapters, logger: options.logger ? pinoAdapter(options.logger) : silentLogger })
+  const app = buildServer({
+    services,
+    tokens: config.tokens,
+    idempotencyStore: new SqliteIdempotencyStore(store),
+    version: SERVICE_VERSION,
+    startedAt: adapters.clock.now().toISOString(),
+    logger: options.logger ?? false
+  })
+
+  return {
+    store,
+    services,
+    app,
+    async start() {
+      services.runner.recover()
+      await services.runner.settled(services.runner.startScan({ actor: 'custodio' }).id)
+      await services.scheduler.tick()
+      if (options.runScheduler !== false) services.scheduler.start(config.tickEveryMs)
+      return app.listen({ host: config.host, port: config.port })
+    },
+    async stop() {
+      services.scheduler.stop()
+      await app.close()
+      await services.runner.idle()
+      store.close()
+    }
+  }
+}
