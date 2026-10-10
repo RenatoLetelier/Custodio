@@ -25,14 +25,18 @@ El sidebar es oscuro en ambos temas. El panel sigue el tema del sistema (`prefer
 | `--card-bg` | `#ffffff` | `#1b1f26` | Tarjetas, modales, botones secundarios |
 | `--input-bg` | `#ffffff` | `#14171c` | Campos de texto |
 | `--hover-bg` | `#f0f2f5` | `#232830` | Hover de filas y botones |
-| `--accent` | `#3b82f6` | igual | Acción principal, logo, progreso, foco |
-| `--accent-hover` | `#2f6fe0` | igual | Hover del botón principal |
+| `--accent` | `#2563eb` | igual | Acción principal, logo, progreso, foco |
+| `--accent-hover` | `#1d4ed8` | igual | Hover del botón principal |
 | `--accent-soft` | `rgba(59,130,246,.12)` | igual | Chips, alertas informativas |
-| `--ok` / `--ok-soft` | `#16a34a` / 12 % | igual | Éxito |
-| `--warn` / `--warn-soft` | `#d97706` / 12 % | igual | Advertencia |
+| `--accent-text` | `#1d4ed8` | `#93c5fd` | Enlaces y texto de acento |
+| `--ok` / `--ok-soft` | `#16a34a` / 12 % | igual | Éxito (puntos y fondos) |
+| `--warn` / `--warn-soft` | `#d97706` / 12 % | igual | Advertencia (puntos y fondos) |
 | `--error` / `--error-soft` | `#dc2626` / 10 % | igual | Error, acciones destructivas |
+| `--ok-text` / `--warn-text` / `--error-text` | `#166534` / `#92400e` / `#b91c1c` | `#4ade80` / `#fbbf24` / `#fca5a5` | Texto de badges y avisos |
 | `--muted-soft` | `rgba(92,100,112,.14)` | igual | Badges neutros, fondo de barras de progreso |
 | `--backdrop` | `rgba(0,0,0,.45)` | igual | Fondo detrás de modales |
+
+**Decisión (contraste AA):** LocalProcessor usa `#3b82f6` como acento, pero con texto blanco da 3,7:1 y axe lo marca como violación grave. Custodio oscurece el acento a `#2563eb` (5,2:1) y usa tonos `*-text` más oscuros en claro y más claros en oscuro para el texto de badges y avisos. Los puntos de color mantienen los tonos originales.
 
 ### Semáforo de salud (Decisión)
 
@@ -162,7 +166,15 @@ Escala de 4 px: 4, 8, 12, 16, 20, 24, 28, 40 (`--space-1` … `--space-10`).
 - Español cotidiano, en segunda persona y sin jerga: "copia de seguridad", "disco sano", "revisa este disco".
 - Números y tamaños con formato `es-CL` (coma decimal: "1,2 GB").
 
+## Bandeja (Decisión)
+
+El icono de bandeja es un círculo del color del semáforo global, generado en tiempo de ejecución (`src/main/tray-icon.ts`); no hay imágenes por color que mantener. El tooltip y las notificaciones salen de `es.json` (`tray.*`).
+
+## Evidencia
+
+Las pruebas de Playwright guardan capturas en `docs/ui-evidence/` con el id del criterio en el nombre (`U3-resumen.png`, `U9-tema-oscuro.png`…). Sin capturas en `docs/ui-reference/`, la comparación visual se hizo contra el código de LocalProcessor y LocalStreaming.
+
 ## Pendientes
 
 - Agregar capturas de LocalProcessor y LocalStreaming a `docs/ui-reference/` y contrastar esta guía con ellas.
-- Icono de la aplicación (`packages/custodio-ui/build/icon.png`) e iconos de bandeja por color del semáforo.
+- Icono de la aplicación (`packages/custodio-ui/build/icon.png`).

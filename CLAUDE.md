@@ -19,8 +19,10 @@ packages/
   custodio-ui/        aplicación de escritorio (Electron + React + Vite)
     src/main/         proceso principal: ventana, bandeja, notificaciones
     src/preload/      puente mínimo hacia el renderer
-    src/ui/           renderer: theme/, i18n/es.json, pantallas
-    e2e/              pruebas Playwright (npm run e2e:ui)
+    src/ui/           renderer: theme/, i18n/es.json, api/ (único cliente de /v1), sections/
+    e2e/              pruebas Playwright U1–U11: cada prueba arranca su propio servicio simulado
+    test/             pruebas vitest de la UI (U12 analiza release.yml y compila)
+.github/workflows/    release.yml: instalador de Windows en GitHub Releases al crear un tag v*
 scripts/              verify.ts y acceptance.ts (conteo de criterios)
 openapi.yaml          contrato de la API /v1, generado desde src/api/contract.ts
 docs/                 SPEC, ACCEPTANCE, UI-GUIDE, EVENTS, adr/, ui-reference/, ui-evidence/
@@ -75,6 +77,8 @@ docs/                 SPEC, ACCEPTANCE, UI-GUIDE, EVENTS, adr/, ui-reference/, u
 - Icono de bandeja con el color del semáforo global y notificaciones nativas.
 - Diferencia clave con LocalProcessor: aquí el backend NO va embebido en Electron. El servicio corre por separado (los respaldos de las 3 am no pueden depender de que la UI esté abierta) y la UI es solo un cliente de la API `/v1` por loopback con token. El acceso remoto queda fuera de alcance.
 - Tras construir cada pantalla, toma una captura con Playwright, compárala visualmente con `docs/ui-reference` y corrige diferencias de layout, espaciado, color y tipografía. Las capturas de las pruebas quedan en `docs/ui-evidence/` (helper `e2e/evidence.ts`).
+  - Las pruebas de UI (`e2e/support/`) arrancan el servicio real con `CUSTODIO_ADAPTERS=sim` en un puerto libre, inyectan el mismo puente que da el preload de Electron y validan axe (sin violaciones graves) y que todo texto visible salga de `es.json`, de un formateador o de los datos del servicio.
+  - En modo simulado el servicio expone `/_sim/*` (con token) para mover discos, salud y reloj; nunca existe con adaptadores reales.
 
 ## Disciplina
 
