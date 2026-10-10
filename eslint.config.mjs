@@ -60,6 +60,10 @@ export default tseslint.config(
   },
   { files: ['**/*.{js,mjs,cjs}'], ...tseslint.configs.disableTypeChecked },
   {
+    // Dropping fields with a rest spread ({ id, ...rest }) is intentional
+    rules: { '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true, argsIgnorePattern: '^_', varsIgnorePattern: '^_' }] }
+  },
+  {
     files: ['packages/custodio-service/src/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', serviceImports],

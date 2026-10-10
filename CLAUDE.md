@@ -14,13 +14,15 @@ packages/
     src/api/          Fastify, rutas /v1, validación Zod, SSE
     src/db/           SQLite (node:sqlite) y migraciones numeradas
     src/helper/       custodio-helper: proceso mínimo y elevado con lista blanca
-    test/e2e/         pruebas end-to-end del servicio (npm run e2e)
+    test/aNN-*.ts     pruebas por criterio (A1–A20), con harness de reloj y discos simulados
+    test/e2e/         pruebas end-to-end del proceso real del servicio (npm run e2e)
   custodio-ui/        aplicación de escritorio (Electron + React + Vite)
     src/main/         proceso principal: ventana, bandeja, notificaciones
     src/preload/      puente mínimo hacia el renderer
     src/ui/           renderer: theme/, i18n/es.json, pantallas
     e2e/              pruebas Playwright (npm run e2e:ui)
 scripts/              verify.ts y acceptance.ts (conteo de criterios)
+openapi.yaml          contrato de la API /v1, generado desde src/api/contract.ts
 docs/                 SPEC, ACCEPTANCE, UI-GUIDE, EVENTS, adr/, ui-reference/, ui-evidence/
 ```
 
@@ -34,6 +36,7 @@ docs/                 SPEC, ACCEPTANCE, UI-GUIDE, EVENTS, adr/, ui-reference/, u
 | `npm run e2e` | Vitest: pruebas end-to-end del servicio con adaptadores simulados |
 | `npm run e2e:ui` | Playwright contra el renderer y el servicio simulado; capturas en `docs/ui-evidence/` |
 | `npm run build:ui` | Compila la aplicación de escritorio |
+| `npm run contracts` | Regenera `openapi.yaml` y los esquemas de `docs/EVENTS.md` desde el código (las pruebas fallan si quedan desactualizados) |
 | `npm run verify` | Corre todo y cuenta criterios: `ACCEPTANCE CORE n/20 PASS` y `ACCEPTANCE UI n/12 PASS` |
 
 `npm run verify` en la raíz evalúa ambos paquetes. Dentro de `packages/custodio-service` evalúa solo CORE y dentro de `packages/custodio-ui` solo UI. Un criterio cuenta como aprobado cuando tiene al menos una prueba cuyo nombre empieza por su id (por ejemplo `A9 reanuda una copia cortada a la mitad`) y ninguna de sus pruebas falla ni está omitida.
@@ -44,6 +47,7 @@ docs/                 SPEC, ACCEPTANCE, UI-GUIDE, EVENTS, adr/, ui-reference/, u
 - Monolito modular en el servicio: módulos `inventory-health`, `allocation` y `backup` con puertos/adaptadores. `src/core` no puede mencionar localcloud, blob ni supabase (ESLint lo bloquea y A16 lo prueba). `src/core` tampoco importa adaptadores, `fs`, `child_process` ni Fastify: todo pasa por puertos. La integración con LocalCloud queda fuera de este alcance.
 - El copiador es propio (decisión cerrada, [ADR-001](docs/adr/ADR-001-copiador-propio.md)) y va detrás de una interfaz. Es la pieza con más riesgo de pérdida de datos: copia a un archivo temporal en el destino, verifica el hash, renombra de forma atómica, nunca sobrescribe en el sitio y se prueba con inyección de fallos (corte a mitad de copia).
 - Contract-first: la primera tarea del Goal 1 es escribir `openapi.yaml` y `docs/EVENTS.md` (definición abierta: decídela siguiendo A13 y A14) y validar las pruebas contra ellos.
+  - El contrato vive en `packages/custodio-service/src/api/contract.ts` (Zod) y `src/core/shared/events.ts`; `npm run contracts` genera `openapi.yaml` y la sección de esquemas de `docs/EVENTS.md`. Toda respuesta de las pruebas se valida contra `openapi.yaml` y todo evento contra `docs/EVENTS.md`.
 - Distribución: instalador de Windows publicado en GitHub Releases al crear un tag `v*` (electron-builder + GitHub Actions). Los `package.json` llevan `"private": true` y no se publica nada en npm. El instalador registra el servicio y el helper y pide permisos de administrador al instalar.
 - Repo con dos paquetes: `custodio-service` (API y lógica) y `custodio-ui` (aplicación de escritorio). El nombre del producto, de la ventana y de la bandeja es **Custodio**.
 

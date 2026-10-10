@@ -54,7 +54,7 @@ export function createService(input: ServiceConfigInput, adapters: Adapters, opt
     idempotencyStore: new SqliteIdempotencyStore(store),
     version: SERVICE_VERSION,
     startedAt: adapters.clock.now().toISOString(),
-    logger: options.logger ?? false
+    logger: options.logger
   })
 
   return {

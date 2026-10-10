@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
-import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify'
+import Fastify, { type FastifyBaseLogger, type FastifyInstance } from 'fastify'
 import type { Services } from '../core/services.js'
 import { ROUTES, type OperationId, type RouteDef } from './contract.js'
 import { toErrorResponse } from './errors.js'
@@ -18,7 +18,7 @@ export interface ServerOptions {
   idempotencyStore: IdempotencyStore
   version: string
   startedAt: string
-  logger?: FastifyServerOptions['logger']
+  logger?: FastifyBaseLogger
 }
 
 declare module 'fastify' {
@@ -34,7 +34,8 @@ const sameSecret = (a: string, b: string): boolean => {
 }
 
 export function buildServer(options: ServerOptions): FastifyInstance {
-  const app = Fastify({ logger: options.logger ?? false, bodyLimit: 1024 * 1024, forceCloseConnections: true })
+  const common = { bodyLimit: 1024 * 1024, forceCloseConnections: true }
+  const app = (options.logger ? Fastify({ ...common, loggerInstance: options.logger }) : Fastify({ ...common, logger: false })) as unknown as FastifyInstance
   const handlers = createHandlers({ services: options.services, version: options.version, startedAt: options.startedAt, openapi: buildOpenApi() })
   const idempotency = new Idempotency(options.idempotencyStore, () => options.services.core.clock.now())
 

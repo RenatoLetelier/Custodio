@@ -92,13 +92,15 @@ describe('respaldo incremental', () => {
     h = await createHarness()
     const calls: string[] = []
     const inner = new NodeFileSystem()
+    // Records every filesystem call with the file names involved
     const spy = new Proxy(inner, {
       get(target, prop: keyof FileSystemPort) {
-        const value = target[prop]
+        const value: unknown = Reflect.get(target, prop)
         if (typeof value !== 'function') return value
         return (...args: unknown[]) => {
-          calls.push(`${String(prop)} ${args.filter((a) => typeof a === 'string').map((a) => (a as string).split(/[\\/]/).pop()).join(' -> ')}`)
-          return (value as (...a: unknown[]) => unknown).apply(target, args)
+          const names = args.filter((a): a is string => typeof a === 'string').map((a) => a.split(/[\\/]/).pop())
+          calls.push(`${String(prop)} ${names.join(' -> ')}`)
+          return Reflect.apply(value, target, args) as unknown
         }
       }
     })
