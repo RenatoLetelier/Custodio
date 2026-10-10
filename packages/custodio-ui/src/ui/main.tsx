@@ -4,6 +4,7 @@ import { App } from './App'
 import { t } from './i18n'
 import { installTheme } from './theme'
 import './styles/base.css'
+import './styles/app.css'
 
 installTheme(document)
 document.title = t('app.name')

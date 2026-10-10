@@ -61,15 +61,3 @@ button {
   letter-spacing: 0.5px;
   flex-shrink: 0;
 }
-
-.placeholder {
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: var(--space-3);
-  height: 100%;
-}
-
-.placeholder__title {
-  font-size: var(--text-panel-title);
-}

@@ -13,6 +13,8 @@ export const DeletionRequestSchema = z.object({
 
 export type DeletionRequest = z.infer<typeof DeletionRequestSchema>
 
+const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
+
 // Custodio never deletes at the source: an order only removes copies, and waits for disks that are away
 export class DeletionService {
   constructor(
@@ -45,7 +47,7 @@ export class DeletionService {
     const destinations = this.destinationsFor(projectId, assignments, items, request.destinations)
     const away = destinations.filter((d) => !store.disks.get(d.diskId)?.connected)
     const lines = [
-      `Se borrarán ${items.length} elemento(s) de ${destinations.length} copia(s) de seguridad: ${destinations.map((d) => `"${d.label}"`).join(', ')}.`,
+      `Se borrará${items.length === 1 ? '' : 'n'} ${count(items.length, 'elemento', 'elementos')} de ${count(destinations.length, 'copia de seguridad', 'copias de seguridad')}: ${destinations.map((d) => `"${d.label}"`).join(', ')}.`,
       'Los archivos originales no se tocan.'
     ]
     for (const destination of away) lines.push(`"${destination.label}" está desconectado: se borrará cuando lo vuelvas a conectar.`)
@@ -55,7 +57,7 @@ export class DeletionService {
       projectId,
       { items, destinations: destinations.map((d) => d.id) },
       {
-        summary: `Borrar ${items.length} elemento(s) de las copias de "${project.name}". El original no se toca.`,
+        summary: `Borrar ${count(items.length, 'elemento', 'elementos')} de las copias de "${project.name}". El original no se toca.`,
         lines,
         movesData: false,
         deletesData: true,

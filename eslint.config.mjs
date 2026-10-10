@@ -39,10 +39,12 @@ const coreMentions = ['Identifier[name=%]', 'Literal[value=%]', 'TemplateElement
 // Interface text comes only from es.json: no letters in JSX text, string children or text-bearing props
 const HAS_LETTERS = '/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/'
 const NOT_FROM_CATALOG = 'Texto de interfaz fijo: usa t() con una clave de es.json.'
+// Expression children only (`{'Hola'}`); expressions inside attributes such as className are not text
+const CHILD = ':matches(JSXElement, JSXFragment) > JSXExpressionContainer'
 const noHardcodedText = [
   `JSXText[value=${HAS_LETTERS}]`,
-  `JSXExpressionContainer > Literal[value=${HAS_LETTERS}]`,
-  `JSXExpressionContainer > TemplateLiteral > TemplateElement[value.raw=${HAS_LETTERS}]`,
+  `${CHILD} > Literal[value=${HAS_LETTERS}]`,
+  `${CHILD} > TemplateLiteral > TemplateElement[value.raw=${HAS_LETTERS}]`,
   `JSXAttribute[name.name=/^(aria-label|aria-description|title|placeholder|alt)$/] > Literal`
 ].map((selector) => ({ selector, message: NOT_FROM_CATALOG }))
 

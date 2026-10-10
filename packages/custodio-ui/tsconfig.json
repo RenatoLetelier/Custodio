@@ -6,6 +6,7 @@
   "include": [
     "src/main/**/*.ts",
     "src/preload/**/*.ts",
+    "test/**/*.ts",
     "electron.vite.config.ts",
     "vite.ui.config.ts",
     "vitest.config.ts",

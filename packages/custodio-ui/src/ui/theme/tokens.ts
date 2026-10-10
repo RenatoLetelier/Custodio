@@ -1,4 +1,4 @@
-// Values taken from LocalProcessor and LocalStreaming (see docs/UI-GUIDE.md)
+// Values taken from LocalProcessor and LocalStreaming (see docs/UI-GUIDE.md); text tones darkened for WCAG AA
 
 const shared = {
   sidebarBg: '#1b2028',
@@ -7,8 +7,8 @@ const shared = {
   sidebarItemHover: 'rgba(255, 255, 255, 0.06)',
   sidebarItemActive: 'rgba(255, 255, 255, 0.12)',
   sidebarDivider: 'rgba(255, 255, 255, 0.08)',
-  accent: '#3b82f6',
-  accentHover: '#2f6fe0',
+  accent: '#2563eb',
+  accentHover: '#1d4ed8',
   accentFg: '#ffffff',
   accentSoft: 'rgba(59, 130, 246, 0.12)',
   ok: '#16a34a',
@@ -31,7 +31,11 @@ const light = {
   cardBg: '#ffffff',
   inputBg: '#ffffff',
   hoverBg: '#f0f2f5',
-  shadow: '0 1px 2px rgba(0, 0, 0, 0.06)'
+  shadow: '0 1px 2px rgba(0, 0, 0, 0.06)',
+  accentText: '#1d4ed8',
+  okText: '#166534',
+  warnText: '#92400e',
+  errorText: '#b91c1c'
 }
 
 export type ModeTokens = typeof light
@@ -45,7 +49,11 @@ const dark: ModeTokens = {
   cardBg: '#1b1f26',
   inputBg: '#14171c',
   hoverBg: '#232830',
-  shadow: '0 1px 2px rgba(0, 0, 0, 0.4)'
+  shadow: '0 1px 2px rgba(0, 0, 0, 0.4)',
+  accentText: '#93c5fd',
+  okText: '#4ade80',
+  warnText: '#fbbf24',
+  errorText: '#fca5a5'
 }
 
 export const modes = { light, dark } as const

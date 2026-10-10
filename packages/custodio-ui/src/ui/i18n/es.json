@@ -11,6 +11,489 @@
     "projects": "Proyectos",
     "backups": "Respaldos",
     "activity": "Actividad",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "skip": "Ir al contenido",
+    "runningCount": "{count} en curso"
+  },
+  "sections": {
+    "overview": { "description": "Cómo está todo y qué conviene hacer ahora." },
+    "disks": { "description": "La salud y el espacio de cada disco." },
+    "projects": { "description": "Qué carpeta de cada disco guarda archivos y cuál guarda copias." },
+    "backups": { "description": "Copias de seguridad automáticas: cuándo se hacen y dónde." },
+    "activity": { "description": "Lo que Custodio está haciendo ahora y lo que ya hizo." },
+    "settings": { "description": "Apariencia, conexión y recuperación de proyectos." }
+  },
+  "connection": {
+    "connecting": "Conectando con Custodio…",
+    "online": "Custodio está funcionando",
+    "offline": "Sin conexión con Custodio",
+    "lost": "Se perdió la conexión con Custodio. Lo intentamos de nuevo solos; tus copias programadas siguen funcionando."
+  },
+  "health": {
+    "label": {
+      "green": "Disco sano",
+      "yellow": "Revisa este disco",
+      "red": "Este disco está fallando",
+      "unknown": "Estado desconocido"
+    },
+    "phrase": {
+      "green": "Disco sano. No tienes que hacer nada.",
+      "yellow": "Muestra señales de desgaste. Conviene revisarlo y tener una copia al día.",
+      "red": "Puede dejar de funcionar pronto. Copia tus archivos a otro disco cuanto antes.",
+      "unknown": "Este disco no informa cómo está. Ten siempre una copia de lo que guarda."
+    }
+  },
+  "common": {
+    "retry": "Reintentar",
+    "cancel": "Cancelar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "none": "—",
+    "unknownDisk": "Disco desconocido",
+    "percent": "{value} %",
+    "seconds": "{count} s",
+    "minutes": "{count} min",
+    "hours": "{count} h"
+  },
+  "units": {
+    "bytes": "{value} {unit}",
+    "B": "B",
+    "KB": "KB",
+    "MB": "MB",
+    "GB": "GB",
+    "TB": "TB",
+    "PB": "PB"
+  },
+  "errors": {
+    "no_service": {
+      "title": "No encontramos el servicio de Custodio",
+      "hint": "Abre Custodio desde su acceso directo para que se conecte solo."
+    },
+    "unreachable": {
+      "title": "No pudimos conectar con Custodio",
+      "hint": "Revisa que el servicio de Custodio esté funcionando. Lo intentaremos de nuevo; tus copias programadas no se detienen."
+    },
+    "unauthorized": {
+      "title": "Custodio no reconoció a esta aplicación",
+      "hint": "Cierra y vuelve a abrir Custodio. Si sigue pasando, reinstálalo."
+    },
+    "not_found": {
+      "title": "Eso ya no existe",
+      "hint": "Puede que lo hayan cambiado hace un momento. Vuelve a la sección y revisa la lista."
+    },
+    "validation_failed": {
+      "title": "Faltan datos o hay alguno mal escrito",
+      "hint": "Revisa lo que escribiste y vuelve a intentarlo."
+    },
+    "invalid_path": {
+      "title": "Esa ruta no es válida",
+      "hint": "Escribe una ruta dentro de la carpeta, por ejemplo Vacaciones/playa.jpg."
+    },
+    "conflict": {
+      "title": "No se puede hacer en este momento",
+      "hint": "Revisa el detalle de arriba, haz el cambio que sugiere y vuelve a intentarlo."
+    },
+    "plan_not_pending": {
+      "title": "Esta vista previa ya no está vigente",
+      "hint": "Ciérrala y vuelve a empezar para ver cómo quedaría ahora."
+    },
+    "topology_invalid": {
+      "title": "Así las copias no protegerían tus archivos",
+      "hint": "Elige un destino en otro disco, con espacio suficiente, y vuelve a intentarlo."
+    },
+    "confirmation_required": {
+      "title": "Falta tu confirmación",
+      "hint": "Confirma para continuar."
+    },
+    "mirror_not_allowed": {
+      "title": "El modo espejo necesita tu permiso",
+      "hint": "Actívalo desde el botón «Activar modo espejo» y confirma."
+    },
+    "source_protected": {
+      "title": "Custodio nunca borra tus originales",
+      "hint": "Elige solo copias de seguridad para borrar."
+    },
+    "unprocessable": {
+      "title": "No se puede hacer así",
+      "hint": "Revisa el detalle y vuelve a intentarlo."
+    },
+    "idempotency_conflict": {
+      "title": "Esa acción ya se había pedido",
+      "hint": "Actualiza la vista para ver el resultado."
+    },
+    "internal": {
+      "title": "Algo salió mal en Custodio",
+      "hint": "Vuelve a intentarlo en un momento. Si sigue pasando, reinicia el equipo."
+    },
+    "unknown": {
+      "title": "Algo salió mal",
+      "hint": "Vuelve a intentarlo en un momento."
+    }
+  },
+  "overview": {
+    "status": {
+      "green": "Todo está bien",
+      "yellow": "Hay algo que revisar",
+      "red": "Necesita tu atención",
+      "unknown": "Falta configurar Custodio"
+    },
+    "statusHint": {
+      "green": "Tus discos están sanos y las copias al día.",
+      "yellow": "No es urgente, pero conviene revisarlo pronto.",
+      "red": "Hay un problema que puede poner tus archivos en riesgo.",
+      "unknown": "Elige qué discos guardan tus archivos y cuáles sus copias."
+    },
+    "todo": {
+      "title": "Qué hacer ahora",
+      "nothing": "Nada por ahora. Custodio se encarga de todo.",
+      "configure": "Elige qué discos guardan tus archivos y cuáles sus copias.",
+      "configureAction": "Empezar",
+      "repairDisk": "Un disco necesita revisión.",
+      "repairDiskAction": "Ver discos",
+      "reconnect": "Un disco está desconectado y sus copias están en pausa.",
+      "reconnectAction": "Ver discos",
+      "freeSpace": "A un disco le queda poco espacio.",
+      "freeSpaceAction": "Ver discos",
+      "checkBackups": "Una copia de seguridad no se pudo hacer.",
+      "checkBackupsAction": "Ver respaldos",
+      "unassigned": "Hay un disco nuevo sin usar.",
+      "unassignedAction": "Ver discos"
+    },
+    "stats": {
+      "label": "Espacio y copias",
+      "total": "Espacio total",
+      "free": "Espacio libre",
+      "last": "Último respaldo",
+      "next": "Próximo respaldo",
+      "never": "Todavía no se ha hecho ninguno",
+      "none": "No hay copias programadas"
+    },
+    "empty": {
+      "title": "Todavía no configuraste Custodio",
+      "body": "El asistente te ayuda a elegir dónde se guardan tus archivos y dónde sus copias.",
+      "action": "Abrir el asistente"
+    }
+  },
+  "jobs": {
+    "status": {
+      "queued": "En espera",
+      "running": "En curso",
+      "succeeded": "Terminó bien",
+      "failed": "Falló",
+      "cancelled": "Cancelado",
+      "interrupted": "En pausa",
+      "skipped": "Se omitió"
+    },
+    "kind": {
+      "backup": "Copia de seguridad",
+      "verification": "Revisión de copias",
+      "inventory_scan": "Búsqueda de discos",
+      "deletion": "Borrado en copias",
+      "repair": "Revisión y reparación de disco"
+    }
+  },
+  "wizard": {
+    "stepOf": "Paso {step} de {total}",
+    "later": "Lo haré más tarde",
+    "projectName": "Mis archivos",
+    "backupFolder": "Copias de Custodio",
+    "policyName": "Copia diaria",
+    "welcome": {
+      "title": "Te damos la bienvenida a Custodio",
+      "body": "Custodio vigila tus discos y hace copias de seguridad automáticas de tus archivos en otro disco.",
+      "safe": "En los próximos pasos solo eliges. Nada se mueve ni se borra hasta que lo confirmes.",
+      "start": "Empezar"
+    },
+    "preset": {
+      "title": "¿Cuántas copias quieres?",
+      "body": "Luego podrás cambiarlo.",
+      "oneCopy": { "title": "Un disco y una copia", "body": "Tus archivos en un disco y una copia de seguridad en otro." },
+      "twoCopies": { "title": "Un disco y dos copias", "body": "Más tranquilidad: dos copias en dos discos distintos." },
+      "custom": { "title": "Personalizado", "body": "Tú decides qué hace cada disco." }
+    },
+    "disks": {
+      "title": "¿Para qué usarás cada disco?",
+      "body": "Elige uno para guardar tus archivos y al menos otro para las copias.",
+      "roleFor": "Uso del disco {disk}",
+      "needBoth": "Elige al menos un disco para guardar archivos y otro para la copia de seguridad.",
+      "redDisk": "Uno de los discos elegidos está fallando. Mejor no confiarle tus archivos."
+    },
+    "noDisks": {
+      "title": "No encontramos discos para usar",
+      "body": "Conecta tus discos y pulsa «Buscar discos»."
+    },
+    "choice": {
+      "storage": "Guardar archivos",
+      "backup": "Copia de seguridad",
+      "none": "No usar"
+    },
+    "summary": {
+      "title": "Así quedará",
+      "storage": "Tus archivos se guardan en: {disks}.",
+      "backup": "Custodio hará una copia de seguridad en {disks} cada día a las {time}.",
+      "unused": "No se usará: {disks}.",
+      "safe": "Ahora no se moverá ni se borrará ningún archivo.",
+      "confirm": "Confirmar y empezar"
+    }
+  },
+  "disks": {
+    "scan": "Buscar discos",
+    "empty": {
+      "title": "No hay discos conectados",
+      "body": "Conecta un disco y pulsa «Buscar discos» para empezar a cuidarlo."
+    },
+    "technical": {
+      "title": "Detalles técnicos",
+      "serial": "Número de serie",
+      "wwn": "WWN",
+      "bus": "Conexión",
+      "device": "Dispositivo",
+      "mount": "Unidad",
+      "size": "Capacidad",
+      "smart": "SMART",
+      "smartOk": "Sin fallas anunciadas",
+      "smartFailed": "Anuncia una falla",
+      "smartNone": "No disponible",
+      "attribute": {
+        "5": "SMART 5 · Sectores reasignados",
+        "197": "SMART 197 · Sectores pendientes",
+        "198": "SMART 198 · Sectores irrecuperables",
+        "199": "SMART 199 · Errores de conexión (cable)"
+      },
+      "temperature": "Temperatura",
+      "celsius": "{value} °C",
+      "hours": "Horas de uso"
+    },
+    "repair": {
+      "title": "Revisar y reparar {disk}",
+      "confirm": "Revisar y reparar"
+    },
+    "retire": {
+      "title": "Dejar de usar {disk}",
+      "summary": "Custodio dejará de usar el disco {disk}. Tus archivos se quedan en el disco.",
+      "confirm": "Dejar de usar"
+    },
+    "state": {
+      "unassigned": "Sin asignar",
+      "assigned": "En uso",
+      "disconnected": "Desconectado"
+    },
+    "disconnectedPhrase": "Este disco no está conectado. Sus copias esperan a que vuelva.",
+    "advice": {
+      "cable": "Hubo errores de conexión: revisa el cable o el adaptador USB."
+    },
+    "spaceLabel": "Espacio usado",
+    "used": "Usado: {value} ({percent})",
+    "free": "Libre: {value}",
+    "fullIn": "A este ritmo se llenará en unos {days} días.",
+    "action": {
+      "repair": "Revisar y reparar",
+      "use": "Usar este disco",
+      "reconnect": "Conéctalo para seguir haciendo copias.",
+      "freeSpace": "Libera espacio o agrega otro disco para las copias.",
+      "checkCable": "Revisa el cable o el adaptador USB.",
+      "none": "Nada que hacer.",
+      "retire": "Dejar de usar este disco"
+    }
+  },
+  "projects": {
+    "add": {
+      "button": "Agregar un disco",
+      "title": "Agregar un disco a {project}",
+      "previewTitle": "Revisa el cambio",
+      "confirm": "Agregar",
+      "review": "Ver cómo quedaría",
+      "noDisks": "No hay discos libres. Conecta otro disco y búscalo en la sección Discos.",
+      "disk": "Disco",
+      "role": "¿Para qué lo usarás?"
+    },
+    "delete": {
+      "button": "Borrar de las copias",
+      "title": "Borrar de las copias de seguridad",
+      "previewTitle": "Revisa qué se borrará",
+      "confirm": "Borrar de las copias",
+      "acknowledge": "Entiendo que se borrará de las copias de seguridad y no se podrá recuperar desde ellas.",
+      "review": "Ver qué se borraría",
+      "body": "El original nunca se toca: solo se borra en las copias de seguridad.",
+      "source": "Carpeta original",
+      "path": "Archivo o carpeta",
+      "pathExample": "Vacaciones/playa.jpg"
+    },
+    "warning": {
+      "no_source": "«{folder}» todavía no recibe copias. Crea una copia programada que la use.",
+      "no_backup": "«{folder}» no tiene copia de seguridad. Si el disco falla, se pierde."
+    },
+    "noFolders": "Este proyecto todavía no usa ningún disco.",
+    "columns": {
+      "folder": "Carpeta",
+      "disk": "Disco",
+      "role": "Uso"
+    },
+    "role": {
+      "storage": "Guarda archivos",
+      "backup": "Copia de seguridad"
+    },
+    "empty": {
+      "title": "Todavía no tienes proyectos",
+      "body": "Un proyecto reúne tus discos: dónde guardas tus archivos y dónde sus copias.",
+      "action": "Abrir el asistente"
+    }
+  },
+  "backups": {
+    "form": {
+      "defaultName": "Copia de seguridad",
+      "title": "Nueva copia programada",
+      "project": "Proyecto",
+      "name": "Nombre",
+      "what": "Qué copiar",
+      "where": "Dónde guardar la copia",
+      "when": "Cuándo",
+      "daily": "Cada día",
+      "weekly": "Algunos días de la semana",
+      "days": "Días",
+      "time": "Hora",
+      "advanced": "Avanzado",
+      "limit": "Velocidad máxima (MB por segundo)",
+      "windowHint": "Si eliges un horario, las copias solo se hacen dentro de él.",
+      "windowStart": "Desde",
+      "windowEnd": "Hasta",
+      "submit": "Crear copia programada"
+    },
+    "paused": "En pausa",
+    "mode": {
+      "append": "Solo agrega",
+      "retention": "Con papelera",
+      "mirror": "Espejo"
+    },
+    "copies": "Copia {sources} en {destinations}.",
+    "noNext": "En pausa: no hay próxima copia.",
+    "next": "Próxima copia {when} ({date}).",
+    "overdue": "Hace tiempo que esta copia no termina bien. Revisa que sus discos estén conectados.",
+    "running": "Copiando… {percent}",
+    "runNow": "Ejecutar ahora",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "mirror": {
+      "button": "Activar modo espejo",
+      "title": "Activar el modo espejo",
+      "summary": "«{name}» mantendrá la copia idéntica al original.",
+      "line1": "Lo que borres en el original también se borrará en la copia.",
+      "line2": "Antes de borrar nada, Custodio preparará una simulación para que la revises.",
+      "line3": "Si la copia fuera a borrar demasiado de una vez, se detiene sin borrar.",
+      "confirm": "Activar modo espejo",
+      "acknowledge": "Entiendo que el modo espejo borra en la copia lo que ya no está en el original."
+    },
+    "new": "Nueva copia programada",
+    "empty": {
+      "title": "Todavía no hay copias programadas",
+      "noProjects": "Primero elige qué discos guardan tus archivos y cuáles sus copias.",
+      "body": "Crea una copia automática: por ejemplo, cada día a las 3:00.",
+      "needDisks": "Para programar una copia hace falta un disco que guarde archivos y otro para la copia.",
+      "action": "Crear la primera",
+      "toProjects": "Ir a Proyectos"
+    }
+  },
+  "activity": {
+    "name": {
+      "backup": "Copia «{name}»",
+      "dryRun": "Simulación de «{name}»",
+      "verification": "Revisión de «{name}»"
+    },
+    "running": "En curso",
+    "queue": "En cola",
+    "history": "Historial",
+    "empty": {
+      "running": "No hay nada en curso",
+      "runningHint": "Pulsa «Ejecutar ahora» en Respaldos para hacer una copia en este momento.",
+      "queue": "No hay nada en cola",
+      "queueHint": "Cuando programes una copia, verás aquí la próxima.",
+      "history": "Todavía no hay actividad",
+      "historyHint": "Cuando termine la primera copia, aparecerá aquí."
+    },
+    "files": "{done} de {total} archivos",
+    "bytes": "{done} de {total}",
+    "progressOf": "Avance de {name}",
+    "waiting": "Esperando su turno",
+    "scheduled": "Programada {when} ({date})",
+    "columns": {
+      "what": "Qué",
+      "result": "Resultado",
+      "when": "Cuándo",
+      "duration": "Duración"
+    }
+  },
+  "schedule": {
+    "days": {
+      "0": "Domingo",
+      "1": "Lunes",
+      "2": "Martes",
+      "3": "Miércoles",
+      "4": "Jueves",
+      "5": "Viernes",
+      "6": "Sábado"
+    },
+    "plural": {
+      "0": "domingos",
+      "1": "lunes",
+      "2": "martes",
+      "3": "miércoles",
+      "4": "jueves",
+      "5": "viernes",
+      "6": "sábados"
+    },
+    "custom": "Horario personalizado",
+    "daily": "Cada día a las {time}",
+    "weekly": "Los {days} a las {time}"
+  },
+  "settings": {
+    "appearance": {
+      "title": "Apariencia",
+      "body": "Custodio usa el tema claro u oscuro de tu sistema."
+    },
+    "connection": {
+      "title": "Conexión",
+      "connecting": "Conectando con el servicio de Custodio…",
+      "online": "Conectado con el servicio de Custodio.",
+      "offline": "Sin conexión con el servicio de Custodio.",
+      "independent": "El servicio trabaja aunque cierres esta ventana: las copias programadas siguen a su hora.",
+      "address": "Dirección del servicio"
+    },
+    "advanced": "Avanzado",
+    "recovery": {
+      "title": "Recuperar proyectos",
+      "body": "Si reinstalaste Custodio, puede leer tus discos y recuperar tus proyectos.",
+      "search": "Buscar proyectos en los discos",
+      "none": "No encontramos proyectos para recuperar",
+      "noneHint": "Conecta los discos que usabas con Custodio y vuelve a buscar.",
+      "recover": "Recuperar"
+    },
+    "about": {
+      "title": "Acerca de Custodio",
+      "body": "Custodio cuida tus discos y tus copias de seguridad.",
+      "version": "Versión {version}"
+    }
+  },
+  "tray": {
+    "tooltip": {
+      "green": "Custodio: todo está bien",
+      "yellow": "Custodio: hay algo que revisar",
+      "red": "Custodio: necesita tu atención",
+      "unknown": "Custodio"
+    },
+    "open": "Abrir Custodio",
+    "quit": "Cerrar la ventana de Custodio",
+    "notify": {
+      "health": {
+        "yellow": "Revisa el disco {disk}",
+        "red": "El disco {disk} está fallando",
+        "green": "El disco {disk} está sano otra vez",
+        "unknown": "No sabemos cómo está el disco {disk}",
+        "body": "Abre Custodio para ver qué hacer."
+      },
+      "backupFailed": {
+        "title": "No se pudo hacer una copia de seguridad",
+        "body": "Abre Custodio para ver qué pasó y cómo arreglarlo."
+      }
+    }
   }
 }

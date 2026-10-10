@@ -1,4 +1,4 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
-// The renderer talks to the service over HTTP; the bridge only carries what the shell knows
-contextBridge.exposeInMainWorld('custodio', { platform: process.platform })
+// Only the service's loopback address and token reach the renderer; it has no other way out
+contextBridge.exposeInMainWorld('custodio', ipcRenderer.sendSync('custodio:bridge') as unknown)
