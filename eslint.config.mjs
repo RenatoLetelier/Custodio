@@ -73,6 +73,18 @@ export default tseslint.config(
       'no-restricted-syntax': ['error', NO_SHELL, ...coreMentions]
     }
   },
+  {
+    // Tests read untyped JSON bodies; their shape is checked against openapi.yaml instead
+    files: ['**/test/**/*.ts', '**/*.test.{ts,tsx}', '**/e2e/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off'
+    }
+  },
   { files: uiFiles, ...eslintReact.configs['recommended-type-checked'] },
   { files: uiFiles, ...reactHooks.configs.flat['recommended-latest'] },
   {

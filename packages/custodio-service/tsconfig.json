@@ -5,5 +5,5 @@
     "moduleResolution": "NodeNext",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts", "vitest.e2e.config.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "vitest.config.ts", "vitest.e2e.config.ts"]
 }
