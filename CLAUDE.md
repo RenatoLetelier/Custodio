@@ -14,6 +14,8 @@ packages/
     src/api/          Fastify, rutas /v1, validación Zod, SSE
     src/db/           SQLite (node:sqlite) y migraciones numeradas
     src/helper/       custodio-helper: proceso mínimo y elevado con lista blanca
+    deploy/windows/   scripts que registran el servicio y el helper como tareas programadas (ADR-002)
+    scripts/bundle.ts empaqueta servicio, helper y node.exe en dist/ para el instalador
     test/aNN-*.ts     pruebas por criterio (A1–A20), con harness de reloj y discos simulados
     test/e2e/         pruebas end-to-end del proceso real del servicio (npm run e2e)
   custodio-ui/        aplicación de escritorio (Electron + React + Vite)
@@ -22,6 +24,7 @@ packages/
     src/ui/           renderer: theme/, i18n/es.json, api/ (único cliente de /v1), sections/
     e2e/              pruebas Playwright U1–U11: cada prueba arranca su propio servicio simulado
     test/             pruebas vitest de la UI (U12 analiza release.yml y compila)
+    build/            installer.nsh: el instalador NSIS registra y retira el servicio y el helper
 .github/workflows/    release.yml: instalador de Windows en GitHub Releases al crear un tag v*
 scripts/              verify.ts y acceptance.ts (conteo de criterios)
 openapi.yaml          contrato de la API /v1, generado desde src/api/contract.ts
@@ -38,6 +41,7 @@ docs/                 SPEC, ACCEPTANCE, UI-GUIDE, EVENTS, adr/, ui-reference/, u
 | `npm run e2e` | Vitest: pruebas end-to-end del servicio con adaptadores simulados |
 | `npm run e2e:ui` | Playwright contra el renderer y el servicio simulado; capturas en `docs/ui-evidence/` |
 | `npm run build:ui` | Compila la aplicación de escritorio |
+| `npm run dist:win` | Empaqueta el servicio y construye el instalador de Windows en `packages/custodio-ui/dist/` (instalación: [docs/INSTALL.md](docs/INSTALL.md)) |
 | `npm run contracts` | Regenera `openapi.yaml` y los esquemas de `docs/EVENTS.md` desde el código (las pruebas fallan si quedan desactualizados) |
 | `npm run verify` | Corre todo y cuenta criterios: `ACCEPTANCE CORE n/20 PASS` y `ACCEPTANCE UI n/12 PASS` |
 
@@ -50,7 +54,7 @@ docs/                 SPEC, ACCEPTANCE, UI-GUIDE, EVENTS, adr/, ui-reference/, u
 - El copiador es propio (decisión cerrada, [ADR-001](docs/adr/ADR-001-copiador-propio.md)) y va detrás de una interfaz. Es la pieza con más riesgo de pérdida de datos: copia a un archivo temporal en el destino, verifica el hash, renombra de forma atómica, nunca sobrescribe en el sitio y se prueba con inyección de fallos (corte a mitad de copia).
 - Contract-first: la primera tarea del Goal 1 es escribir `openapi.yaml` y `docs/EVENTS.md` (definición abierta: decídela siguiendo A13 y A14) y validar las pruebas contra ellos.
   - El contrato vive en `packages/custodio-service/src/api/contract.ts` (Zod) y `src/core/shared/events.ts`; `npm run contracts` genera `openapi.yaml` y la sección de esquemas de `docs/EVENTS.md`. Toda respuesta de las pruebas se valida contra `openapi.yaml` y todo evento contra `docs/EVENTS.md`.
-- Distribución: instalador de Windows publicado en GitHub Releases al crear un tag `v*` (electron-builder + GitHub Actions). Los `package.json` llevan `"private": true` y no se publica nada en npm. El instalador registra el servicio y el helper y pide permisos de administrador al instalar.
+- Distribución: instalador de Windows publicado en GitHub Releases al crear un tag `v*` (electron-builder + GitHub Actions). Los `package.json` llevan `"private": true` y no se publica nada en npm. El instalador registra el servicio y el helper y pide permisos de administrador al instalar: ambos quedan como tareas programadas, el helper como SYSTEM y el servicio con la cuenta del usuario sin elevar, y corren con el `node.exe` que trae el instalador ([ADR-002](docs/adr/ADR-002-servicio-y-helper-como-tareas.md)).
 - Repo con dos paquetes: `custodio-service` (API y lógica) y `custodio-ui` (aplicación de escritorio). El nombre del producto, de la ventana y de la bandeja es **Custodio**.
 
 ## Entorno y seguridad

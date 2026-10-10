@@ -5,6 +5,10 @@ Gestor de discos y respaldos para Windows: vigila la salud y el espacio de tus d
 - `packages/custodio-service`: servicio local (API `/v1`, scheduler, respaldos). Corre aunque la aplicación esté cerrada.
 - `packages/custodio-ui`: aplicación de escritorio (Electron), cliente del servicio por loopback.
 
+## Instalación
+
+Instalador de Windows con `npm run dist:win` o desde GitHub Releases. Pasos, comprobaciones y desinstalación en [docs/INSTALL.md](docs/INSTALL.md).
+
 ## Desarrollo
 
 Requiere Node 22.13 o superior.
