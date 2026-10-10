@@ -102,6 +102,7 @@ test.describe('con discos en distintos estados', () => {
       await expect(page.getByRole('dialog')).toBeVisible()
       await expectAccessible(page)
       await page.keyboard.press('Escape')
+      await expect(page.getByRole('dialog')).toHaveCount(0)
       await goTo(page, es.nav.backups)
       await page.getByRole('button', { name: es.backups.new }).click()
       await page.getByText(es.backups.form.weekly, { exact: true }).click()
