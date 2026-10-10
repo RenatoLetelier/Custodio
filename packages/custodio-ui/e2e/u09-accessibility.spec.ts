@@ -2,7 +2,7 @@ import es from '../src/ui/i18n/es.json'
 import { modes } from '../src/ui/theme/tokens'
 import { captureEvidence } from './evidence'
 import { expect, expectAccessible, expectTextsFromCatalog, goTo, openApp, test } from './support/fixtures'
-import { healthy } from './support/service'
+import { DEFAULT_DISKS, healthy } from './support/service'
 
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`
 const SECTIONS = ['overview', 'disks', 'projects', 'backups', 'activity', 'settings'] as const
@@ -20,41 +20,57 @@ test('U9 el tema claro u oscuro sigue al sistema', async ({ page, service }) => 
   }
 })
 
-test('U9 todo se usa con el teclado', async ({ page, service }) => {
-  await service.standardProject()
-  await openApp(page, service)
-  await page.keyboard.press('Tab')
-  await expect(page.getByRole('link', { name: es.nav.skip })).toBeFocused()
-  await page.keyboard.press('Tab')
-  const overview = page.getByRole('navigation').getByRole('button', { name: es.nav.overview })
-  await expect(overview).toBeFocused()
-  await expect(overview).not.toHaveCSS('outline-style', 'none')
-  await page.keyboard.press('Tab')
-  await expect(page.getByRole('navigation').getByRole('button', { name: es.nav.disks })).toBeFocused()
-  await page.keyboard.press('Enter')
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(es.nav.disks)
+test.describe('con un disco que se puede retirar', () => {
+  // The first disk is assigned but feeds no scheduled copy, so "Dejar de usar este disco" opens its preview
+  test.use({ scenario: { disks: [{ name: 'archivo', model: 'Disco de archivo', sizeGB: 1000 }, ...DEFAULT_DISKS] } })
 
-  // Into the content: the first disk's details open and close with the keyboard
-  const toggle = page.getByRole('button', { name: es.disks.technical.title }).first()
-  for (let i = 0; i < 15 && !(await toggle.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab')
-  await expect(toggle).toBeFocused()
-  await page.keyboard.press('Enter')
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-  await page.keyboard.press('Space')
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  test('U9 todo se usa con el teclado', async ({ page, service }) => {
+    await service.standardProject()
+    await service.project('Archivo', [{ disk: 'archivo', folder: 'Archivo', role: 'backup', label: 'Archivo' }])
+    await openApp(page, service)
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('link', { name: es.nav.skip })).toBeFocused()
+    await page.keyboard.press('Tab')
+    const overview = page.getByRole('navigation').getByRole('button', { name: es.nav.overview })
+    await expect(overview).toBeFocused()
+    await expect(overview).not.toHaveCSS('outline-style', 'none')
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('navigation').getByRole('button', { name: es.nav.disks })).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(es.nav.disks)
 
-  // A dialog takes the focus, closes with Escape and gives the focus back
-  await page.getByRole('navigation').getByRole('button', { name: es.nav.backups }).focus()
-  await page.keyboard.press('Enter')
-  const mirror = page.getByRole('button', { name: es.backups.mirror.button })
-  await mirror.focus()
-  await page.keyboard.press('Enter')
-  await expect(page.getByRole('dialog')).toBeVisible()
-  await expect(page.getByRole('dialog').getByRole('button', { name: es.common.cancel })).toBeFocused()
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(mirror).toBeFocused()
-  await captureEvidence(page, 'U9-teclado')
+    // Into the content: the first disk's details open and close with the keyboard
+    const toggle = page.getByRole('button', { name: es.disks.technical.title }).first()
+    for (let i = 0; i < 15 && !(await toggle.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab')
+    await expect(toggle).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await page.keyboard.press('Space')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+
+    // A dialog takes the focus, closes with Escape and gives the focus back
+    const retire = page.getByRole('button', { name: es.disks.action.retire }).first()
+    await retire.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await expect(page.getByRole('dialog').getByRole('button', { name: es.common.cancel })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(retire).toBeFocused()
+
+    // The same holds for a dialog with a confirmation checkbox (mirror mode)
+    await page.getByRole('navigation').getByRole('button', { name: es.nav.backups }).focus()
+    await page.keyboard.press('Enter')
+    const mirror = page.getByRole('button', { name: es.backups.mirror.button })
+    await mirror.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await expect(page.getByRole('dialog').getByRole('button', { name: es.common.cancel })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(mirror).toBeFocused()
+    await captureEvidence(page, 'U9-teclado')
+  })
 })
 
 test.describe('con discos en distintos estados', () => {

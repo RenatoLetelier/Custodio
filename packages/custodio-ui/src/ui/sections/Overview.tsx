@@ -1,4 +1,5 @@
 import { Badge, EmptyState, Semaphore } from '../components/ui'
+import { cn, modifier } from '../lib/dom'
 import { t, type MessageKey } from '../i18n'
 import { formatBytes, formatDateTime, formatRelative } from '../i18n/format'
 import { suggestions, type Suggestion } from '../lib/disks'
@@ -44,7 +45,7 @@ export function Overview() {
 
   return (
     <div className="stack">
-      <section className={`card status-hero status-hero--${overview.status}`} data-testid="overview-status" data-status={overview.status} aria-labelledby="status-title">
+      <section className={cn('card', 'status-hero', modifier('status-hero', overview.status))} data-testid="overview-status" data-status={overview.status} aria-labelledby="status-title">
         <Semaphore status={overview.status} size="lg" />
         <div>
           <h2 id="status-title" className="status-hero__title">

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { cn, modifier } from '../lib/dom'
 import type { Health } from '../api/types'
 import { t, type MessageKey } from '../i18n'
 import { friendlyError } from '../lib/errors'
@@ -25,11 +26,11 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
 }
 
 export function Semaphore({ status, size = 'md' }: { status: Health; size?: 'md' | 'lg' }) {
-  return <span className={`semaphore semaphore--${status} semaphore--${size}`} role="img" aria-label={t(`health.label.${status}`)} data-status={status} />
+  return <span className={cn('semaphore', modifier('semaphore', status), modifier('semaphore', size))} role="img" aria-label={t(`health.label.${status}`)} data-status={status} />
 }
 
 export function Badge({ tone, children }: { tone: 'ok' | 'warn' | 'error' | 'accent' | 'muted'; children: ReactNode }) {
-  return <span className={`badge badge--${tone}`}>{children}</span>
+  return <span className={cn('badge', modifier('badge', tone))}>{children}</span>
 }
 
 export function EmptyState({ title, body, action }: { title: string; body?: string; action?: ReactNode }) {
@@ -109,7 +110,7 @@ export function Modal({ title, onClose, children, footer, wide = false }: { titl
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={dialogRef} className={`modal${wide ? ' modal--wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div ref={dialogRef} className={cn('modal', wide && 'modal--wide')} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <h2 id={titleId} className="modal__title">
           {title}
         </h2>
@@ -160,7 +161,7 @@ export function PreviewDialog({ title, summary, lines, confirmLabel, danger = fa
           <button type="button" className="btn" onClick={onClose} disabled={busy} data-autofocus>
             {t('common.cancel')}
           </button>
-          <button type="button" className={`btn ${danger ? 'btn--danger' : 'btn--primary'}`} onClick={() => void confirm()} disabled={busy || !checked}>
+          <button type="button" className={cn('btn', danger ? 'btn--danger' : 'btn--primary')} onClick={() => void confirm()} disabled={busy || !checked}>
             {confirmLabel}
           </button>
         </>

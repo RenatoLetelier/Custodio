@@ -1,4 +1,5 @@
 import { t } from '../i18n'
+import { cn, modifier } from '../lib/dom'
 import { SECTIONS, type SectionId } from '../navigation'
 import { useAppState } from '../state/AppState'
 import { Semaphore } from './ui'
@@ -21,7 +22,7 @@ export function Sidebar({ active, onSelect }: { active: SectionId; onSelect: (id
           <button
             key={section.id}
             type="button"
-            className={`sidebar__item${section.id === active ? ' sidebar__item--active' : ''}`}
+            className={cn('sidebar__item', section.id === active && 'sidebar__item--active')}
             aria-current={section.id === active ? 'page' : undefined}
             onClick={() => onSelect(section.id)}
             data-section={section.id}
@@ -43,7 +44,7 @@ export function Sidebar({ active, onSelect }: { active: SectionId; onSelect: (id
             <span>{t(`overview.status.${overview.status}`)}</span>
           </div>
         )}
-        <div className={`connection connection--${connection}`} data-testid="connection">
+        <div className={cn('connection', modifier('connection', connection))} data-testid="connection">
           <span className="connection__dot" aria-hidden="true" />
           <span>{t(`connection.${connection}`)}</span>
         </div>

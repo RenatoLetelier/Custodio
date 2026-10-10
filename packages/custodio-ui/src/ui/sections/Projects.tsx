@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { domId } from '../lib/dom'
 import { api } from '../api/client'
 import type { Plan, ProjectView, Role } from '../api/types'
 import { Badge, EmptyState, ErrorNotice, Modal, PreviewDialog, type PreviewProps } from '../components/ui'
@@ -155,9 +156,9 @@ function ProjectCard({ view, onPreview }: { view: ProjectView; onPreview: (p: Pe
   const warnings = view.topology.warnings.filter((w) => w.code === 'no_source' || w.code === 'no_backup')
 
   return (
-    <article className="card project" data-testid="project-card" aria-labelledby={`project-${view.project.id}`}>
+    <article className="card project" data-testid="project-card" aria-labelledby={domId('project', view.project.id)}>
       <header className="project__header">
-        <h3 id={`project-${view.project.id}`} className="card__title">
+        <h3 id={domId('project', view.project.id)} className="card__title">
           {view.project.name}
         </h3>
         <div className="actions actions--tight">

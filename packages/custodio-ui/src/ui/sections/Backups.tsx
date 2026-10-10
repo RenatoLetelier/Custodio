@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { cn, domId } from '../lib/dom'
 import { api } from '../api/client'
 import type { Job, Policy, ProjectView } from '../api/types'
 import { Badge, Disclosure, EmptyState, ErrorNotice, PreviewDialog, ProgressBar, type PreviewProps } from '../components/ui'
@@ -96,7 +97,7 @@ function NewPolicyForm({ projects, onDone }: { projects: ProjectView[]; onDone: 
         <legend>{t('backups.form.when')}</legend>
         <div className="segmented" role="radiogroup" aria-label={t('backups.form.when')}>
           {(['daily', 'weekly'] as const).map((kind) => (
-            <label key={kind} className={`segmented__item${schedule.kind === kind ? ' segmented__item--active' : ''}`}>
+            <label key={kind} className={cn('segmented__item', schedule.kind === kind && 'segmented__item--active')}>
               <input type="radio" className="visually-hidden" name="frequency" checked={schedule.kind === kind} onChange={() => setSchedule({ ...schedule, kind })} />
               <span>{t(`backups.form.${kind}` as MessageKey)}</span>
             </label>
@@ -185,9 +186,9 @@ function PolicyCard({ policy, project, onPreview }: { policy: Policy; project: P
     })
 
   return (
-    <article className="card policy" data-testid="policy-card" data-policy={policy.id} aria-labelledby={`policy-${policy.id}`}>
+    <article className="card policy" data-testid="policy-card" data-policy={policy.id} aria-labelledby={domId('policy', policy.id)}>
       <header className="policy__header">
-        <h3 id={`policy-${policy.id}`} className="card__title">
+        <h3 id={domId('policy', policy.id)} className="card__title">
           {policy.name}
         </h3>
         <div className="chips">

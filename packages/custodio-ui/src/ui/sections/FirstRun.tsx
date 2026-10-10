@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { cn, domId } from '../lib/dom'
 import { api } from '../api/client'
 import type { Disk, Plan, ProjectView, Role } from '../api/types'
 import { EmptyState, ErrorNotice, Semaphore } from '../components/ui'
@@ -106,7 +107,7 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
             <p className="muted">{t('wizard.preset.body')}</p>
             <div className="choice-list" role="radiogroup" aria-label={t('wizard.preset.title')}>
               {PRESETS.map((option) => (
-                <label key={option} className={`choice${preset === option ? ' choice--selected' : ''}`}>
+                <label key={option} className={cn('choice', preset === option && 'choice--selected')}>
                   <input type="radio" name="preset" value={option} checked={preset === option} onChange={() => choosePreset(option)} />
                   <span className="choice__text">
                     <span className="choice__title">{t(`wizard.preset.${option}.title` as MessageKey)}</span>
@@ -150,8 +151,8 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
             ) : (
               <div className="disk-choices">
                 {usable.map((disk) => (
-                  <div key={disk.id} className="disk-choice" role="group" aria-labelledby={`choice-${disk.id}`} data-testid="disk-choice" data-disk={disk.id}>
-                    <div id={`choice-${disk.id}`} className="disk-choice__name">
+                  <div key={disk.id} className="disk-choice" role="group" aria-labelledby={domId('choice', disk.id)} data-testid="disk-choice" data-disk={disk.id}>
+                    <div id={domId('choice', disk.id)} className="disk-choice__name">
                       <Semaphore status={disk.health} />
                       <span className="disk-choice__text">
                         <span>{disk.model}</span>
@@ -160,11 +161,11 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
                     </div>
                     <div className="segmented" role="radiogroup" aria-label={t('wizard.disks.roleFor', { disk: disk.model })}>
                       {CHOICES.map((choice) => (
-                        <label key={choice} className={`segmented__item${choiceOf(disk) === choice ? ' segmented__item--active' : ''}`}>
+                        <label key={choice} className={cn('segmented__item', choiceOf(disk) === choice && 'segmented__item--active')}>
                           <input
                             type="radio"
                             className="visually-hidden"
-                            name={`role-${disk.id}`}
+                            name={domId('role', disk.id)}
                             value={choice}
                             checked={choiceOf(disk) === choice}
                             onChange={() => setChoices({ ...Object.fromEntries(usable.map((d) => [d.id, choiceOf(d)])), [disk.id]: choice })}

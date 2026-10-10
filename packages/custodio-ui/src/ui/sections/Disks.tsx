@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { domId } from '../lib/dom'
 import { api } from '../api/client'
 import type { Disk, Plan } from '../api/types'
 import { Badge, Disclosure, EmptyState, ErrorNotice, PreviewDialog, ProgressBar, Semaphore, type PreviewProps } from '../components/ui'
@@ -110,10 +111,10 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
   }
 
   return (
-    <article className="card disk-card" data-testid="disk-card" data-disk={disk.id} data-health={status} aria-labelledby={`disk-${disk.id}`}>
+    <article className="card disk-card" data-testid="disk-card" data-disk={disk.id} data-health={status} aria-labelledby={domId('disk', disk.id)}>
       <header className="disk-card__header">
         <Semaphore status={status} />
-        <h3 id={`disk-${disk.id}`} className="disk-card__name">
+        <h3 id={domId('disk', disk.id)} className="disk-card__name">
           {disk.model}
         </h3>
         <Badge tone={!disk.connected ? 'muted' : disk.state === 'assigned' ? 'accent' : 'warn'}>
