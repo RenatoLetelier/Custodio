@@ -1,0 +1,16 @@
+node_modules/
+out/
+dist/
+reports/
+test-results/
+playwright-report/
+*.tsbuildinfo
+*.db
+*.db-wal
+*.db-shm
+*.log
+.env
+.env.*
+.DS_Store
+Thumbs.db
+.claude/settings.local.json
