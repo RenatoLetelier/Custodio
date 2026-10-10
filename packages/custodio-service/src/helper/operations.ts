@@ -59,4 +59,8 @@ export const OPERATIONS = {
 } as const
 
 export type OperationName = keyof typeof OPERATIONS
+
+// What the service may ask for a disk repair: the repair itself and the one-time confirmation it needs
+export const REPAIR_OPERATION: OperationName = 'chkdsk.fix'
+export const CONFIRMATION_OPERATION = 'confirmation.issue'
 export const OPERATION_NAMES = Object.keys(OPERATIONS) as OperationName[]

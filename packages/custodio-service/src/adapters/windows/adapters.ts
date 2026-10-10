@@ -1,5 +1,6 @@
-import type { DiskProbe, PhysicalDiskInfo, SmartReader, SmartReading, VolumeReader, VolumeUsage } from '../../core/ports/system.js'
+import type { DiskProbe, DiskRepairer, PhysicalDiskInfo, RepairOutcome, SmartReader, SmartReading, VolumeReader, VolumeUsage } from '../../core/ports/system.js'
 import type { HelperResponse } from '../../helper/helper.js'
+import { CONFIRMATION_OPERATION, REPAIR_OPERATION } from '../../helper/operations.js'
 import { assertRealAdaptersAllowed } from './guard.js'
 import { parseDisks, parseSmartctl, parseVolumes } from './parsers.js'
 
@@ -40,5 +41,31 @@ export class WindowsVolumeReader implements VolumeReader {
   async usage(mountPath: string): Promise<VolumeUsage | null> {
     assertRealAdaptersAllowed('WindowsVolumeReader')
     return parseVolumes(await stdoutOf(this.helper, 'volumes.list', {})).get(mountPath.toUpperCase()) ?? null
+  }
+}
+
+const driveOf = (mountPath: string): string => {
+  const drive = /^([A-Za-z]):/.exec(mountPath)?.[1]
+  if (!drive) throw new Error(`${mountPath} is not a drive letter`)
+  return `${drive.toUpperCase()}:`
+}
+
+// File system repair through the helper; it only runs with a one-time confirmation issued at preview time
+export class WindowsRepairer implements DiskRepairer {
+  constructor(private readonly helper: HelperCaller) {}
+
+  async authorize(mountPath: string): Promise<string | null> {
+    assertRealAdaptersAllowed('WindowsRepairer')
+    const response = await this.helper.call(CONFIRMATION_OPERATION, { op: REPAIR_OPERATION, args: { drive: driveOf(mountPath) } })
+    if (!response.ok || !('token' in response.result)) throw new Error('custodio-helper did not issue a confirmation')
+    return response.result.token
+  }
+
+  async repair(mountPath: string, confirmation: string | null): Promise<RepairOutcome> {
+    assertRealAdaptersAllowed('WindowsRepairer')
+    const response = await this.helper.call(REPAIR_OPERATION, { drive: driveOf(mountPath) }, confirmation ?? undefined)
+    if (!response.ok) throw new Error(`custodio-helper ${REPAIR_OPERATION}: ${response.error.code}`)
+    if (!('stdout' in response.result)) throw new Error(`custodio-helper ${REPAIR_OPERATION}: unexpected answer`)
+    return { repaired: response.result.exitCode === 0, details: response.result.stdout.trim().split('\n').slice(-3).join('\n') }
   }
 }

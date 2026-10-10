@@ -56,6 +56,7 @@ export function createHandlers(deps: { services: Services; version: string; star
       return ok(diskView(core, disk))
     },
     scanDisks: (_input, ctx) => accepted(s.runner.startScan({ actor: ctx.actor })),
+    requestRepair: async ({ params }, ctx) => created(await s.repairs.preview(params.diskId, ctx.actor)),
 
     listProjects: () => ok({ projects: core.store.projects.list().map((p) => projectOut(p.id)) }),
     createProject: ({ body }, ctx) => created(projectOut(s.projects.create(body.name, ctx.actor).id)),

@@ -154,7 +154,7 @@ const JobProgressSchema = z
 export const JobSchema = z
   .object({
     id: Id,
-    kind: z.enum(['backup', 'verification', 'inventory_scan', 'deletion']),
+    kind: z.enum(['backup', 'verification', 'inventory_scan', 'deletion', 'repair']),
     status: z.enum(['queued', 'running', 'succeeded', 'failed', 'cancelled', 'interrupted', 'skipped']),
     trigger: z.enum(['manual', 'schedule', 'catch_up']),
     policyId: z.string().nullable(),
@@ -270,6 +270,14 @@ export const ROUTES = {
   },
   getDisk: { method: 'GET', path: '/v1/disks/{diskId}', tag: 'Discos', summary: 'Un disco', params: DiskParams, responses: { 200: { description: 'Disco', schema: DiskSchema } } },
   scanDisks: { method: 'POST', path: '/v1/disks/scan', tag: 'Discos', summary: 'Vuelve a leer discos, salud y espacio', responses: { 202: accepted } },
+  requestRepair: {
+    method: 'POST',
+    path: '/v1/disks/{diskId}/repairs',
+    tag: 'Discos',
+    summary: 'Prepara la revisión y reparación del disco. Requiere confirmar el plan',
+    params: DiskParams,
+    responses: { 201: { description: 'Plan de reparación pendiente', schema: PlanSchema } }
+  },
 
   listProjects: {
     method: 'GET',

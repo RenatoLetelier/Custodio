@@ -6,6 +6,7 @@ import { NodeFileSystem } from '../../src/adapters/node/filesystem.js'
 import { SimClock } from '../../src/adapters/sim/clock.js'
 import { SimDiskProbe, SimSmartReader, SimVolumeReader, TB, GB } from '../../src/adapters/sim/devices.js'
 import { SimMeter } from '../../src/adapters/sim/io.js'
+import { SimRepairer } from '../../src/adapters/sim/repairer.js'
 import { createService, type CustodioService } from '../../src/app.js'
 import type { Services } from '../../src/core/services.js'
 import type { Copier, FileSystemPort, PhysicalDiskInfo } from '../../src/core/ports/system.js'
@@ -61,6 +62,7 @@ export class Harness {
   readonly realFs = new NodeFileSystem()
   readonly fs: FileSystemPort
   readonly meter: SimMeter
+  readonly repairer = new SimRepairer()
   service!: CustodioService
   private diskCount = 0
   private closed = false
@@ -93,6 +95,7 @@ export class Harness {
         volumes: this.volumes,
         fs: this.fs,
         copier: this.options.copier ? this.options.copier(this.fs) : new AtomicCopier(this.fs),
+        repairer: this.repairer,
         meter: this.meter,
         random: this.options.random
       },

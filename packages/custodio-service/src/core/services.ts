@@ -8,6 +8,7 @@ import { PolicyService } from './backup/policies.js'
 import { Scheduler } from './backup/scheduler.js'
 import { VerificationService } from './backup/verification.js'
 import { InventoryService } from './inventory-health/inventory.js'
+import { RepairService } from './inventory-health/repair.js'
 import { JobRunner } from './jobs/runner.js'
 import { createCore, type CoreDeps } from './shared/context.js'
 
@@ -22,17 +23,17 @@ export function createServices(deps: CoreDeps) {
   const engine = new BackupEngine(core, deletions)
   const verifier = new VerificationService(core)
   const recovery = new RecoveryService(core)
-  const runner = new JobRunner(core, engine, verifier, {
-    // A scan also refreshes volume.json on disks that came back and retries pending deletions
-    scan: async () => {
-      const result = await inventory.scan()
-      const descriptorsRefreshed = await descriptors.syncConnected()
-      const deletionsCompleted = await deletions.retryPending()
-      return { ...result, descriptorsRefreshed, deletionsCompleted }
-    }
-  })
+  // A scan also refreshes volume.json on disks that came back and retries pending deletions
+  const scan = async () => {
+    const result = await inventory.scan()
+    const descriptorsRefreshed = await descriptors.syncConnected()
+    const deletionsCompleted = await deletions.retryPending()
+    return { ...result, descriptorsRefreshed, deletionsCompleted }
+  }
+  const runner = new JobRunner(core, engine, verifier, { scan })
+  const repairs = new RepairService(core, plans, runner, scan)
   const scheduler = new Scheduler(core, runner, deletions)
-  return { core, inventory, projects, descriptors, plans, deletions, policies, engine, verifier, recovery, runner, scheduler }
+  return { core, inventory, projects, descriptors, plans, deletions, policies, engine, verifier, recovery, runner, repairs, scheduler }
 }
 
 export type Services = ReturnType<typeof createServices>

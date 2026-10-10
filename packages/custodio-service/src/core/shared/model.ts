@@ -98,7 +98,7 @@ export interface Policy extends PolicyConfig, PolicyState {
   createdAt: string
 }
 
-export type JobKind = 'backup' | 'verification' | 'inventory_scan' | 'deletion'
+export type JobKind = 'backup' | 'verification' | 'inventory_scan' | 'deletion' | 'repair'
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted' | 'skipped'
 export type JobTrigger = 'manual' | 'schedule' | 'catch_up'
 

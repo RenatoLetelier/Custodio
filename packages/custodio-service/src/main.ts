@@ -6,7 +6,7 @@ import { AtomicCopier } from './adapters/node/atomic-copier.js'
 import { NodeFileSystem } from './adapters/node/filesystem.js'
 import { SystemClock } from './adapters/node/system-clock.js'
 import { createSimAdapters, loadScenario } from './adapters/sim/scenario.js'
-import { WindowsDiskProbe, WindowsSmartReader, WindowsVolumeReader } from './adapters/windows/adapters.js'
+import { WindowsDiskProbe, WindowsRepairer, WindowsSmartReader, WindowsVolumeReader } from './adapters/windows/adapters.js'
 import { createService, type Adapters } from './app.js'
 import { configFromEnv, type ServiceConfig } from './config.js'
 import { DEFAULT_PIPE, HelperClient } from './helper/transport.js'
@@ -29,14 +29,15 @@ function windowsAdapters(config: ServiceConfig): Adapters {
     smart: new WindowsSmartReader(helper),
     volumes: new WindowsVolumeReader(helper),
     fs,
-    copier: new AtomicCopier(fs)
+    copier: new AtomicCopier(fs),
+    repairer: new WindowsRepairer(helper)
   }
 }
 
 const log = pino({ name: 'custodio-service' })
 const config = configFromEnv()
-const adapters = config.adapters === 'windows' ? windowsAdapters(config) : createSimAdapters(config.simScenario ? loadScenario(config.simScenario) : undefined)
-const service = createService(config, adapters, { logger: log })
+const sim = config.adapters === 'sim' ? createSimAdapters(config.simScenario ? loadScenario(config.simScenario) : undefined) : null
+const service = createService(config, sim ?? windowsAdapters(config), { logger: log, simControl: sim ?? undefined })
 const address = await service.start()
 log.info({ address, adapters: config.adapters }, 'custodio listening')
 

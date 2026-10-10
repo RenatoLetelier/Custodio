@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Store } from '../ports/store.js'
-import type { Clock, Copier, DiskProbe, FileSystemPort, Logger, Meter, SmartReader, VolumeReader } from '../ports/system.js'
+import type { Clock, Copier, DiskProbe, DiskRepairer, FileSystemPort, Logger, Meter, SmartReader, VolumeReader } from '../ports/system.js'
 import type { DomainEvent, EventPayload, EventPublisher, EventType } from './events.js'
 
 export interface CoreDeps {
@@ -11,6 +11,7 @@ export interface CoreDeps {
   volumes: VolumeReader
   fs: FileSystemPort
   copier: Copier
+  repairer: DiskRepairer
   meter?: Meter
   logger: Logger
   newId?: () => string

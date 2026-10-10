@@ -97,6 +97,18 @@ export interface Copier {
   copy(request: CopyRequest): Promise<CopyResult>
 }
 
+export interface RepairOutcome {
+  repaired: boolean
+  details: string
+}
+
+// Checks and fixes a volume's file system (on Windows, through custodio-helper)
+export interface DiskRepairer {
+  // A one-time permission obtained when the user sees the preview, redeemed when they confirm
+  authorize(mountPath: string): Promise<string | null>
+  repair(mountPath: string, confirmation: string | null, signal?: AbortSignal): Promise<RepairOutcome>
+}
+
 export interface Meter {
   record(bytes: number): void
 }

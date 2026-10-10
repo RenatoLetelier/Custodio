@@ -111,6 +111,11 @@ export class JobRunner {
     return this.launch({ kind: 'inventory_scan', policy: null, options, lock: false }, () => this.inventory.scan())
   }
 
+  // Other long operations (disk repair) that are not tied to a policy
+  startTask(kind: JobKind, options: StartOptions, work: (signal: AbortSignal) => Promise<Record<string, unknown>>): Job {
+    return this.launch({ kind, policy: null, options, lock: false }, (_job, signal) => work(signal))
+  }
+
   cancel(jobId: string, actor: string): Job {
     const job = this.get(jobId)
     const entry = this.running.get(jobId)

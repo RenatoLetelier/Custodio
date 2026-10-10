@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises'
 import type { Clock } from '../../core/ports/system.js'
 
 interface Sleeper {
@@ -54,5 +55,22 @@ export class SimClock implements Clock {
     const due = this.sleepers.filter((s) => s.until <= this.current)
     this.sleepers = this.sleepers.filter((s) => s.until > this.current)
     for (const sleeper of due) sleeper.resolve()
+  }
+}
+
+// Real time that a test can push forward: the service keeps running normally while hours pass in a second
+export class ShiftableClock implements Clock {
+  private offsetMs = 0
+
+  now(): Date {
+    return new Date(Date.now() + this.offsetMs)
+  }
+
+  sleep(ms: number, signal?: AbortSignal): Promise<void> {
+    return delay(Math.max(0, ms), undefined, { signal })
+  }
+
+  advance(ms: number): void {
+    this.offsetMs += ms
   }
 }

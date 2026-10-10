@@ -8,7 +8,7 @@ import { ROUTES, type RouteDef } from '../src/api/contract.js'
 import { ServiceConfigSchema } from '../src/config.js'
 import { resolveInside } from '../src/core/shared/paths.js'
 import { hashTree, simpleSetup } from './support/backup.js'
-import { createHarness, type Harness } from './support/harness.js'
+import { createHarness, TOKEN, type Harness } from './support/harness.js'
 
 let h: Harness
 afterEach(async () => h?.close())
@@ -108,5 +108,46 @@ describe('seguridad', () => {
     expect(audit.filter((e: any) => e.actor === 'otra-app').map((e: any) => e.action)).toEqual(['deletion.ordered', 'plan.confirmed'])
     expect(audit.find((e: any) => e.action === 'deletion.applied')).toMatchObject({ actor: 'custodio', details: { requestedBy: 'otra-app' } })
     expect(audit.find((e: any) => e.action === 'assignments.changed')?.actor).toBe('tester')
+  })
+
+  it('A15 reparar un disco es destructivo: previsualización, confirmación explícita y auditoría', async () => {
+    h = await createHarness()
+    const disk = await h.addDisk('dudoso')
+    await h.scan()
+    const preview = await h.post(`/v1/disks/${h.diskId(disk)}/repairs`)
+    expect(preview.status).toBe(201)
+    expect(preview.body).toMatchObject({ kind: 'repair', status: 'pending', preview: { deletesData: false } })
+    expect(preview.body.preview.lines.join(' ')).toContain('No se borra ningún archivo tuyo')
+    expect(h.repairer.repaired).toEqual([])
+
+    expect((await h.post(`/v1/plans/${preview.body.id}/confirm`, { confirm: false })).status).toBe(422)
+    expect(h.repairer.repaired).toEqual([])
+    const confirmed = await h.post(`/v1/plans/${preview.body.id}/confirm`, { confirm: true })
+    const job = await h.s.runner.settled(confirmed.body.result.job.id)
+    expect(job).toMatchObject({ kind: 'repair', status: 'succeeded', result: { repaired: true } })
+    expect(h.repairer.repaired).toEqual([disk.mountPath])
+    // The one-time permission is spent: confirming the same plan again does nothing
+    expect((await h.post(`/v1/plans/${preview.body.id}/confirm`, { confirm: true })).status).toBe(409)
+    const audit = (await h.get('/v1/audit')).body.entries
+    expect(audit.find((e: any) => e.action === 'disk.repair_requested')).toMatchObject({ actor: 'tester', target: h.diskId(disk) })
+  })
+
+  it('A15 solo el origen de la aplicación puede llamar desde un navegador, y siempre con token', async () => {
+    h = await createHarness()
+    const preflight = await h.service.app.inject({ method: 'OPTIONS', url: '/v1/disks', headers: { origin: 'app://custodio', 'access-control-request-method': 'GET' } })
+    expect(preflight.statusCode).toBe(204)
+    expect(preflight.headers['access-control-allow-origin']).toBe('app://custodio')
+    expect(String(preflight.headers['access-control-allow-headers'])).toContain('Authorization')
+
+    const noToken = await h.service.app.inject({ method: 'GET', url: '/v1/disks', headers: { origin: 'app://custodio' } })
+    expect(noToken.statusCode).toBe(401)
+    const withToken = await h.service.app.inject({ method: 'GET', url: '/v1/disks', headers: { origin: 'app://custodio', authorization: `Bearer ${TOKEN}` } })
+    expect(withToken.statusCode).toBe(200)
+    expect(withToken.headers['access-control-allow-origin']).toBe('app://custodio')
+
+    const foreign = await h.service.app.inject({ method: 'OPTIONS', url: '/v1/disks', headers: { origin: 'https://sitio-malicioso.example' } })
+    expect(foreign.statusCode).toBe(401)
+    expect(foreign.headers['access-control-allow-origin']).toBeUndefined()
+    expect(() => ServiceConfigSchema.parse({ dataDir: 'd', tokens: [{ name: 'ui', token: 'x'.repeat(32) }], corsOrigins: ['https://sitio-malicioso.example'] })).toThrow()
   })
 })

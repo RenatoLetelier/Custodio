@@ -247,6 +247,67 @@ paths:
           content:
             application/json:
               schema: *a6
+  /v1/disks/{diskId}/repairs:
+    post:
+      operationId: requestRepair
+      summary: Prepara la revisión y reparación del disco. Requiere confirmar el plan
+      tags:
+        - Discos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: diskId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      responses:
+        "201":
+          description: Plan de reparación pendiente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a7
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a7
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a7
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a7
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a7
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a7
   /v1/projects:
     get:
       operationId: listProjects
@@ -274,18 +335,18 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a7
+              schema: &a8
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a7
+              schema: *a8
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a7
+              schema: *a8
     post:
       operationId: createProject
       summary: Crea un proyecto vacío
@@ -319,28 +380,28 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a8
+              schema: &a9
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a8
+              schema: *a9
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a8
+              schema: *a9
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a8
+              schema: *a9
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a8
+              schema: *a9
   /v1/projects/{projectId}:
     get:
       operationId: getProject
@@ -367,23 +428,23 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a9
+              schema: &a10
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a9
+              schema: *a10
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a9
+              schema: *a10
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a9
+              schema: *a10
   /v1/projects/{projectId}/topology:
     get:
       operationId: getTopology
@@ -410,23 +471,23 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a10
+              schema: &a11
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a10
+              schema: *a11
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a10
+              schema: *a11
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a10
+              schema: *a11
   /v1/projects/{projectId}/plans:
     post:
       operationId: proposeAssignments
@@ -467,33 +528,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a11
+              schema: &a12
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a11
+              schema: *a12
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a11
+              schema: *a12
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a11
+              schema: *a12
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a11
+              schema: *a12
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a11
+              schema: *a12
   /v1/projects/{projectId}/policies:
     post:
       operationId: createPolicy
@@ -534,33 +595,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a12
+              schema: &a13
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a12
+              schema: *a13
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a12
+              schema: *a13
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a12
+              schema: *a13
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a12
+              schema: *a13
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a12
+              schema: *a13
   /v1/projects/{projectId}/deletions:
     post:
       operationId: previewDeletion
@@ -601,33 +662,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a13
+              schema: &a14
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a13
+              schema: *a14
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a13
+              schema: *a14
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a13
+              schema: *a14
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a13
+              schema: *a14
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a13
+              schema: *a14
     get:
       operationId: listDeletions
       summary: Órdenes de borrado y su avance por disco
@@ -661,23 +722,23 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a14
+              schema: &a15
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a14
+              schema: *a15
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a14
+              schema: *a15
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a14
+              schema: *a15
   /v1/recovery/scan:
     post:
       operationId: reconstructProjects
@@ -714,28 +775,28 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a15
+              schema: &a16
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a15
+              schema: *a16
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a15
+              schema: *a16
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a15
+              schema: *a16
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a15
+              schema: *a16
   /v1/recovery/import:
     post:
       operationId: importProject
@@ -770,28 +831,28 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a16
+              schema: &a17
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a16
+              schema: *a17
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a16
+              schema: *a17
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a16
+              schema: *a17
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a16
+              schema: *a17
   /v1/plans/{planId}:
     get:
       operationId: getPlan
@@ -818,23 +879,23 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a17
+              schema: &a18
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a17
+              schema: *a18
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a17
+              schema: *a18
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a17
+              schema: *a18
   /v1/plans/{planId}/confirm:
     post:
       operationId: confirmPlan
@@ -875,33 +936,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a18
+              schema: &a19
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a18
+              schema: *a19
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a18
+              schema: *a19
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a18
+              schema: *a19
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a18
+              schema: *a19
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a18
+              schema: *a19
   /v1/policies/{policyId}:
     get:
       operationId: getPolicy
@@ -928,23 +989,23 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a19
+              schema: &a20
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a19
+              schema: *a20
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a19
+              schema: *a20
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a19
+              schema: *a20
     patch:
       operationId: updatePolicy
       summary: Cambia horario, modo, límites o la pausa
@@ -976,33 +1037,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a20
+              schema: &a21
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a20
+              schema: *a21
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a20
+              schema: *a21
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a20
+              schema: *a21
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a20
+              schema: *a21
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a20
+              schema: *a21
   /v1/policies/{policyId}/runs:
     post:
       operationId: runPolicy
@@ -1043,33 +1104,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a21
+              schema: &a22
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a21
+              schema: *a22
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a21
+              schema: *a22
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a21
+              schema: *a22
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a21
+              schema: *a22
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a21
+              schema: *a22
   /v1/policies/{policyId}/verifications:
     post:
       operationId: verifyPolicy
@@ -1110,33 +1171,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a22
+              schema: &a23
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a22
+              schema: *a23
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a22
+              schema: *a23
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a22
+              schema: *a23
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a22
+              schema: *a23
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a22
+              schema: *a23
   /v1/jobs:
     get:
       operationId: listJobs
@@ -1162,6 +1223,7 @@ paths:
               - verification
               - inventory_scan
               - deletion
+              - repair
         - name: status
           in: query
           required: false
@@ -1196,18 +1258,18 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a23
+              schema: &a24
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a23
+              schema: *a24
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a23
+              schema: *a24
   /v1/jobs/{jobId}:
     get:
       operationId: getJob
@@ -1234,23 +1296,23 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a24
+              schema: &a25
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a24
+              schema: *a25
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a24
+              schema: *a25
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a24
+              schema: *a25
   /v1/jobs/{jobId}/cancel:
     post:
       operationId: cancelJob
@@ -1285,33 +1347,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a25
+              schema: &a26
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a25
+              schema: *a26
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a25
+              schema: *a26
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a25
+              schema: *a26
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a25
+              schema: *a26
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a25
+              schema: *a26
   /v1/events:
     get:
       operationId: listEvents
@@ -1354,18 +1416,18 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a26
+              schema: &a27
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a26
+              schema: *a27
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a26
+              schema: *a27
   /v1/events/stream:
     get:
       operationId: streamEvents
@@ -1393,18 +1455,18 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a27
+              schema: &a28
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a27
+              schema: *a28
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a27
+              schema: *a28
   /v1/audit:
     get:
       operationId: listAudit
@@ -1440,18 +1502,18 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a28
+              schema: &a29
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a28
+              schema: *a29
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a28
+              schema: *a29
 components:
   securitySchemes:
     serviceToken:
@@ -2215,6 +2277,7 @@ components:
             - verification
             - inventory_scan
             - deletion
+            - repair
         status:
           type: string
           enum:

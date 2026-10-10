@@ -19,6 +19,8 @@ export const ServiceConfigSchema = z.object({
   tokens: z
     .array(z.object({ name: z.string().min(1), token: z.string().min(MIN_TOKEN_LENGTH, `El token debe tener al menos ${MIN_TOKEN_LENGTH} caracteres.`) }))
     .min(1, 'El servicio necesita un token.'),
+  // Origins allowed to call the API from a browser engine: the desktop app (and the dev renderer in tests)
+  corsOrigins: z.array(z.string().regex(/^(app:\/\/custodio|http:\/\/(127\.0\.0\.1|localhost):\d+)$/)).default(['app://custodio']),
   adapters: z.enum(['sim', 'windows']).default('sim'),
   simScenario: z.string().optional(),
   tickEveryMs: z.number().int().positive().default(30_000)
@@ -51,6 +53,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServiceConf
     host: env.CUSTODIO_HOST,
     port: env.CUSTODIO_PORT === undefined ? undefined : Number(env.CUSTODIO_PORT),
     tokens: [{ name: env.CUSTODIO_TOKEN_NAME ?? 'custodio-ui', token }],
+    corsOrigins: env.CUSTODIO_CORS_ORIGINS?.split(',').map((o) => o.trim()).filter(Boolean),
     adapters: env.CUSTODIO_ADAPTERS,
     simScenario: env.CUSTODIO_SIM_SCENARIO,
     tickEveryMs: env.CUSTODIO_TICK_MS === undefined ? undefined : Number(env.CUSTODIO_TICK_MS)

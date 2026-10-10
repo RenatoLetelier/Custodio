@@ -2,8 +2,9 @@ import { join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import type { Logger as PinoLogger } from 'pino'
 import { buildServer } from './api/server.js'
+import { registerSimControl, type SimControlTarget } from './adapters/sim/control.js'
 import { ServiceConfigSchema, type ServiceConfigInput } from './config.js'
-import type { Clock, Copier, DiskProbe, FileSystemPort, Logger, Meter, SmartReader, VolumeReader } from './core/ports/system.js'
+import type { Clock, Copier, DiskProbe, DiskRepairer, FileSystemPort, Logger, Meter, SmartReader, VolumeReader } from './core/ports/system.js'
 import { silentLogger } from './core/ports/system.js'
 import { createServices, type Services } from './core/services.js'
 import { SqliteIdempotencyStore } from './db/idempotency.js'
@@ -18,6 +19,7 @@ export interface Adapters {
   volumes: VolumeReader
   fs: FileSystemPort
   copier: Copier
+  repairer: DiskRepairer
   meter?: Meter
   random?: () => number
 }
@@ -42,6 +44,8 @@ export interface CreateOptions {
   logger?: PinoLogger
   // Tests drive the scheduler by hand; the real service runs its loop
   runScheduler?: boolean
+  // Development and UI tests only: endpoints that move the simulated hardware
+  simControl?: SimControlTarget
 }
 
 export function createService(input: ServiceConfigInput, adapters: Adapters, options: CreateOptions = {}): CustodioService {
@@ -54,8 +58,10 @@ export function createService(input: ServiceConfigInput, adapters: Adapters, opt
     idempotencyStore: new SqliteIdempotencyStore(store),
     version: SERVICE_VERSION,
     startedAt: adapters.clock.now().toISOString(),
+    corsOrigins: config.corsOrigins,
     logger: options.logger
   })
+  if (options.simControl) registerSimControl(app, options.simControl, services)
 
   return {
     store,

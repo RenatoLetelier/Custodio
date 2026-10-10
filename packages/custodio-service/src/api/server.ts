@@ -18,6 +18,7 @@ export interface ServerOptions {
   idempotencyStore: IdempotencyStore
   version: string
   startedAt: string
+  corsOrigins?: string[]
   logger?: FastifyBaseLogger
 }
 
@@ -41,8 +42,24 @@ export function buildServer(options: ServerOptions): FastifyInstance {
 
   app.decorateRequest('actor', '')
 
+  const corsOrigins = new Set(options.corsOrigins ?? [])
+
   // Every request needs the service token; the token's name is who asked, for the audit log
   app.addHook('onRequest', async (request, reply) => {
+    const origin = request.headers.origin
+    if (origin && corsOrigins.has(origin)) {
+      void reply.header('access-control-allow-origin', origin)
+      void reply.header('vary', 'Origin')
+      void reply.header('access-control-expose-headers', 'Location, Idempotent-Replayed')
+      // Browser preflight carries no credentials by design; it only learns what the real request may send
+      if (request.method === 'OPTIONS') {
+        void reply.header('access-control-allow-methods', 'GET, POST, PATCH')
+        void reply.header('access-control-allow-headers', 'Authorization, Content-Type, Idempotency-Key, Last-Event-ID')
+        void reply.header('access-control-max-age', '600')
+        await reply.code(204).send()
+        return reply
+      }
+    }
     const header = request.headers.authorization
     const token = typeof header === 'string' && header.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : ''
     const match = token === '' ? undefined : options.tokens.find((t) => sameSecret(t.token, token))

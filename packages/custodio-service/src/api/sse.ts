@@ -1,3 +1,4 @@
+import type { OutgoingHttpHeaders } from 'node:http'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { JobRunner } from '../core/jobs/runner.js'
 import type { Store } from '../core/ports/store.js'
@@ -17,9 +18,12 @@ export function streamEvents(
   const lastEventId = Number(request.headers['last-event-id'])
   let cursor = Number.isInteger(lastEventId) && lastEventId > after ? lastEventId : after
 
+  // CORS headers set by the request hooks must survive the hijack
+  const inherited = Object.fromEntries(Object.entries(reply.getHeaders()).filter(([, value]) => value !== undefined)) as OutgoingHttpHeaders
   reply.hijack()
   const raw = reply.raw
   raw.writeHead(200, {
+    ...inherited,
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
     Connection: 'keep-alive',

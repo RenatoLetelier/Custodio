@@ -3,8 +3,9 @@ import { z } from 'zod'
 import type { Adapters } from '../../app.js'
 import { AtomicCopier } from '../node/atomic-copier.js'
 import { NodeFileSystem } from '../node/filesystem.js'
-import { SystemClock } from '../node/system-clock.js'
+import { ShiftableClock } from './clock.js'
 import { SimDiskProbe, SimSmartReader, SimVolumeReader } from './devices.js'
+import { SimRepairer } from './repairer.js'
 
 const SmartReadingSchema = z.object({
   supported: z.boolean(),
@@ -34,9 +35,11 @@ export const ScenarioSchema = z.object({
 export type Scenario = z.input<typeof ScenarioSchema>
 
 export interface SimAdapters extends Adapters {
+  clock: ShiftableClock
   disks: SimDiskProbe
   smart: SimSmartReader
   volumes: SimVolumeReader
+  repairer: SimRepairer
 }
 
 export function createSimAdapters(scenario: Scenario = { disks: [] }): SimAdapters {
@@ -50,7 +53,7 @@ export function createSimAdapters(scenario: Scenario = { disks: [] }): SimAdapte
     if (disk.usage && disk.mountPath) volumes.set(disk.mountPath, disk.usage)
   }
   const fs = new NodeFileSystem()
-  return { clock: new SystemClock(), disks, smart, volumes, fs, copier: new AtomicCopier(fs) }
+  return { clock: new ShiftableClock(), disks, smart, volumes, fs, copier: new AtomicCopier(fs), repairer: new SimRepairer() }
 }
 
 export const loadScenario = (file: string): Scenario => JSON.parse(readFileSync(file, 'utf8')) as Scenario
