@@ -49,9 +49,19 @@ function showWindow(): void {
   void window.loadURL(process.env.ELECTRON_RENDERER_URL ?? 'app://custodio/index.html')
 }
 
+// Installed, Custodio starts with the session straight into the tray; the uninstaller removes this entry by its name
+const LOGIN_ITEM = 'Custodio'
+const BACKGROUND_ARG = '--background'
+
 app.setName(t('app.name'))
 
+// One Custodio per session: opening it again shows the window of the one already in the tray
+const primary = app.requestSingleInstanceLock()
+if (!primary) app.quit()
+app.on('second-instance', showWindow)
+
 void app.whenReady().then(() => {
+  if (!primary) return
   protocol.handle('app', (request) => {
     const path = normalize(join(RENDERER_DIR, decodeURIComponent(new URL(request.url).pathname)))
     if (!path.startsWith(RENDERER_DIR + sep)) return new Response(null, { status: 404 })
@@ -65,7 +75,8 @@ void app.whenReady().then(() => {
 
   const shell = createElectronShell(showWindow, () => app.quit())
   if (address) void new StatusMonitor(address, shell).start()
-  showWindow()
+  if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: true, name: LOGIN_ITEM, args: [BACKGROUND_ARG] })
+  if (!process.argv.includes(BACKGROUND_ARG)) showWindow()
 })
 
 // Closing the window keeps the tray; quitting the interface never stops the service or its schedule
