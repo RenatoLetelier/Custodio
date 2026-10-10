@@ -23,7 +23,9 @@ export const ServiceConfigSchema = z.object({
   corsOrigins: z.array(z.string().regex(/^(app:\/\/custodio|http:\/\/(127\.0\.0\.1|localhost):\d+)$/)).default(['app://custodio']),
   adapters: z.enum(['sim', 'windows']).default('sim'),
   simScenario: z.string().optional(),
-  tickEveryMs: z.number().int().positive().default(30_000)
+  tickEveryMs: z.number().int().positive().default(30_000),
+  // Every scan reads SMART, which can wake sleeping disks: a few times a day is enough
+  scanEveryMs: z.number().int().positive().default(6 * 60 * 60 * 1000)
 })
 
 export type ServiceConfig = z.output<typeof ServiceConfigSchema>
@@ -56,6 +58,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServiceConf
     corsOrigins: env.CUSTODIO_CORS_ORIGINS?.split(',').map((o) => o.trim()).filter(Boolean),
     adapters: env.CUSTODIO_ADAPTERS,
     simScenario: env.CUSTODIO_SIM_SCENARIO,
-    tickEveryMs: env.CUSTODIO_TICK_MS === undefined ? undefined : Number(env.CUSTODIO_TICK_MS)
+    tickEveryMs: env.CUSTODIO_TICK_MS === undefined ? undefined : Number(env.CUSTODIO_TICK_MS),
+    scanEveryMs: env.CUSTODIO_SCAN_MS === undefined ? undefined : Number(env.CUSTODIO_SCAN_MS)
   })
 }

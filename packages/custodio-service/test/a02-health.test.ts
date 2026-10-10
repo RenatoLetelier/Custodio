@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { healthySmart } from '../src/adapters/sim/devices.js'
 import { evaluateHealth } from '../src/core/inventory-health/health.js'
-import { createHarness, type Harness } from './support/harness.js'
+import { InventoryWatch } from '../src/core/inventory-health/watch.js'
+import { ACTOR, HOUR, MINUTE, createHarness, type Harness } from './support/harness.js'
 
 let h: Harness
 afterEach(async () => h?.close())
@@ -62,5 +63,33 @@ describe('salud de los discos', () => {
     const changes = h.events('disk.health_changed')
     expect(changes).toHaveLength(1)
     expect(changes[0]?.payload).toEqual({ diskId: view.id, previous: 'green', current: 'yellow', reasons: ['pending_sectors'] })
+  })
+
+  it('A2 la salud se vuelve a revisar sola y, si el primer escaneo falla porque el helper aún arranca, se reintenta al minuto', async () => {
+    h = await createHarness()
+    const disk = await h.addDisk('viejo')
+    vi.spyOn(h.disks, 'listDisks').mockRejectedValueOnce(new Error('custodio-helper is not reachable'))
+    const scan = () => h.s.runner.settled(h.s.runner.startScan({ actor: ACTOR }).id)
+    const first = await scan()
+    expect(first.status).toBe('failed')
+    expect(h.s.core.store.disks.list()).toHaveLength(0)
+
+    const watch = new InventoryWatch(h.clock, scan, 6 * HOUR)
+    const slept = h.clock.sleptMs
+    watch.start(first)
+    try {
+      h.clock.advance(MINUTE)
+      await vi.waitFor(() => expect(h.clock.sleptMs).toBe(slept + MINUTE + 6 * HOUR))
+      expect(h.s.core.store.disks.list()).toHaveLength(1)
+
+      h.smart.set(disk.devicePath, withAttributes({ '197': 3 }))
+      h.clock.advance(5 * HOUR)
+      expect(h.events('disk.health_changed')).toHaveLength(0)
+      h.clock.advance(HOUR)
+      await vi.waitFor(() => expect(h.clock.sleptMs).toBe(slept + MINUTE + 12 * HOUR))
+      expect(h.events('disk.health_changed').map((e) => e.payload)).toEqual([expect.objectContaining({ previous: 'green', current: 'yellow' })])
+    } finally {
+      watch.stop()
+    }
   })
 })

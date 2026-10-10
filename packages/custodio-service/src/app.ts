@@ -6,6 +6,7 @@ import { registerSimControl, type SimControlTarget } from './adapters/sim/contro
 import { ServiceConfigSchema, type ServiceConfigInput } from './config.js'
 import type { Clock, Copier, DiskProbe, DiskRepairer, FileSystemPort, Logger, Meter, SmartReader, VolumeReader } from './core/ports/system.js'
 import { silentLogger } from './core/ports/system.js'
+import { InventoryWatch } from './core/inventory-health/watch.js'
 import { createServices, type Services } from './core/services.js'
 import { SqliteIdempotencyStore } from './db/idempotency.js'
 import { SqliteStore } from './db/store.js'
@@ -62,6 +63,8 @@ export function createService(input: ServiceConfigInput, adapters: Adapters, opt
     logger: options.logger
   })
   if (options.simControl) registerSimControl(app, options.simControl, services)
+  const scan = () => services.runner.settled(services.runner.startScan({ actor: 'custodio' }).id)
+  const watch = new InventoryWatch(adapters.clock, scan, config.scanEveryMs)
 
   return {
     store,
@@ -69,13 +72,17 @@ export function createService(input: ServiceConfigInput, adapters: Adapters, opt
     app,
     async start() {
       services.runner.recover()
-      await services.runner.settled(services.runner.startScan({ actor: 'custodio' }).id)
+      const firstScan = await scan()
       await services.scheduler.tick()
-      if (options.runScheduler !== false) services.scheduler.start(config.tickEveryMs)
+      if (options.runScheduler !== false) {
+        services.scheduler.start(config.tickEveryMs)
+        watch.start(firstScan)
+      }
       return app.listen({ host: config.host, port: config.port })
     },
     async stop() {
       services.scheduler.stop()
+      watch.stop()
       await app.close()
       await services.runner.idle()
       store.close()
