@@ -10,7 +10,7 @@ export interface CommandRunner {
 
 // The real runner: only inside the elevated helper, never under tests
 export class ExecFileRunner implements CommandRunner {
-  run(file: string, args: string[]): Promise<CommandResult> {
+  async run(file: string, args: string[]): Promise<CommandResult> {
     assertRealAdaptersAllowed('custodio-helper')
     return runFile(file, args)
   }

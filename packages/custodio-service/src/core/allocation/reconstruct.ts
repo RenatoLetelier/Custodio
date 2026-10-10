@@ -1,10 +1,10 @@
 import { join } from 'node:path'
-import { sameDisk } from '../inventory-health/inventory.js'
+import { identityKeyOf, normalizeSerial, normalizeWwn, sameDisk } from '../inventory-health/inventory.js'
 import type { FileSystemPort } from '../ports/system.js'
 import type { Core } from '../shared/context.js'
 import { DomainError } from '../shared/errors.js'
 import { META_DIR } from '../shared/files.js'
-import type { Assignment, Policy } from '../shared/model.js'
+import type { Assignment, Disk, Policy } from '../shared/model.js'
 import {
   DESCRIPTOR_FILE,
   parseDescriptor,
@@ -100,18 +100,49 @@ export class RecoveryService {
     return reconstructProjects(this.core.fs, volumes)
   }
 
-  // Loads a reconstructed project into an empty database; disks must have been scanned first
+  // Disks of the project that are not connected yet are remembered as disconnected; a scan recognises them later
+  private diskFor(described: DescribedAssignment['disk'], projectName: string): string {
+    const { store, clock } = this.core
+    const known = store.disks.list().find((d) => sameDisk(d, described))
+    if (known) return known.id
+    const identityKey = identityKeyOf({ wwn: described.wwn, serial: described.serial, devicePath: '' })
+    if (identityKey.startsWith('device:')) {
+      throw new DomainError('unprocessable', `Conecta el disco ${described.model} para recuperar "${projectName}": no tiene número de serie para reconocerlo.`)
+    }
+    const now = clock.now().toISOString()
+    const disk: Disk = {
+      id: this.core.newId(),
+      identityKey,
+      serial: normalizeSerial(described.serial),
+      wwn: normalizeWwn(described.wwn),
+      model: described.model,
+      sizeBytes: 0,
+      bus: 'other',
+      devicePath: '',
+      mountPath: null,
+      connected: false,
+      health: 'unknown',
+      healthReasons: [{ code: 'not_seen', message: 'Este disco todavía no se ha conectado.' }],
+      advisories: [],
+      smart: null,
+      capacityLow: false,
+      firstSeenAt: now,
+      lastSeenAt: now
+    }
+    store.disks.insert(disk)
+    return disk.id
+  }
+
+  // Loads a reconstructed project into an empty database
   import(project: ReconstructedProject, actor: string): void {
     const { store } = this.core
-    const disks = store.disks.list()
     store.transaction(() => {
       if (store.projects.get(project.id) || store.projects.findByName(project.name)) {
         throw new DomainError('conflict', `El proyecto "${project.name}" ya existe.`)
       }
       store.projects.insert({ id: project.id, name: project.name, createdAt: project.createdAt, revision: project.revision })
       for (const described of project.assignments) {
-        const disk = disks.find((d) => sameDisk(d, described.disk))
-        if (!disk) throw new DomainError('unprocessable', `Conecta el disco ${described.disk.model} (${described.disk.serial ?? 'sin serie'}) para recuperar "${project.name}".`)
+        const disk = { id: this.diskFor(described.disk, project.name) }
         const assignment: Assignment = {
           id: described.id,
           projectId: project.id,

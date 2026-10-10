@@ -33,6 +33,7 @@ export interface HarnessOptions {
   fs?: (inner: FileSystemPort) => FileSystemPort
   copier?: (fs: FileSystemPort) => Copier
   random?: () => number
+  extraTokens?: { name: string; token: string }[]
 }
 
 export interface SimDiskOptions {
@@ -84,7 +85,7 @@ export class Harness {
 
   boot(): void {
     this.service = createService(
-      { dataDir: this.dataDir, tokens: [{ name: ACTOR, token: TOKEN }] },
+      { dataDir: this.dataDir, tokens: [{ name: ACTOR, token: TOKEN }, ...(this.options.extraTokens ?? [])] },
       {
         clock: this.clock,
         disks: this.disks,
@@ -106,6 +107,15 @@ export class Harness {
     this.service.store.close()
     this.boot()
     this.s.runner.recover()
+  }
+
+  // Loses the database entirely; the disks and their files stay
+  async resetDatabase(): Promise<void> {
+    await this.s.runner.idle()
+    await this.service.app.close()
+    this.service.store.close()
+    await rm(this.dataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+    this.boot()
   }
 
   async addDisk(name: string, options: SimDiskOptions = {}): Promise<SimDisk> {

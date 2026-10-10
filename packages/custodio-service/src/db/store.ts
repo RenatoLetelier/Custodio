@@ -197,7 +197,7 @@ class SqliteDisks implements DiskStore {
   }
 
   list(): Disk[] {
-    return this.s.all('SELECT * FROM disks ORDER BY first_seen_at, id').map((r) => this.map(r))
+    return this.s.all('SELECT * FROM disks ORDER BY first_seen_at, rowid').map((r) => this.map(r))
   }
 
   insert(disk: Disk): void {
@@ -252,7 +252,7 @@ class SqliteProjects implements ProjectStore {
   }
 
   list(): Project[] {
-    return this.s.all('SELECT * FROM projects ORDER BY created_at, id').map((r) => this.map(r))
+    return this.s.all('SELECT * FROM projects ORDER BY created_at, rowid').map((r) => this.map(r))
   }
 
   insert(p: Project): void {
@@ -290,15 +290,15 @@ class SqliteAssignments implements AssignmentStore {
   }
 
   byProject(projectId: string): Assignment[] {
-    return this.s.all('SELECT * FROM assignments WHERE project_id = :projectId ORDER BY created_at, id', { projectId }).map((r) => this.map(r))
+    return this.s.all('SELECT * FROM assignments WHERE project_id = :projectId ORDER BY created_at, rowid', { projectId }).map((r) => this.map(r))
   }
 
   byDisk(diskId: string): Assignment[] {
-    return this.s.all('SELECT * FROM assignments WHERE disk_id = :diskId ORDER BY created_at, id', { diskId }).map((r) => this.map(r))
+    return this.s.all('SELECT * FROM assignments WHERE disk_id = :diskId ORDER BY created_at, rowid', { diskId }).map((r) => this.map(r))
   }
 
   list(): Assignment[] {
-    return this.s.all('SELECT * FROM assignments ORDER BY created_at, id').map((r) => this.map(r))
+    return this.s.all('SELECT * FROM assignments ORDER BY created_at, rowid').map((r) => this.map(r))
   }
 
   insert(a: Assignment): void {
@@ -363,11 +363,11 @@ class SqlitePolicies implements PolicyStore {
   }
 
   byProject(projectId: string): Policy[] {
-    return this.s.all('SELECT * FROM policies WHERE project_id = :projectId ORDER BY created_at, id', { projectId }).map((r) => this.map(r))
+    return this.s.all('SELECT * FROM policies WHERE project_id = :projectId ORDER BY created_at, rowid', { projectId }).map((r) => this.map(r))
   }
 
   list(): Policy[] {
-    return this.s.all('SELECT * FROM policies ORDER BY created_at, id').map((r) => this.map(r))
+    return this.s.all('SELECT * FROM policies ORDER BY created_at, rowid').map((r) => this.map(r))
   }
 
   insert(p: Policy): void {
@@ -642,7 +642,7 @@ class SqliteDeletions implements DeletionStore {
 
   byProject(projectId: string): DeletionOrder[] {
     return this.s
-      .all('SELECT * FROM deletion_orders WHERE project_id = :projectId ORDER BY created_at, id', { projectId })
+      .all('SELECT * FROM deletion_orders WHERE project_id = :projectId ORDER BY created_at, rowid', { projectId })
       .map((r) => this.order(r))
   }
 
