@@ -90,12 +90,13 @@ export class PlanService {
   async confirm(planId: string, actor: string, confirm: unknown): Promise<{ plan: Plan; result: Record<string, unknown> }> {
     if (confirm !== true) throw new DomainError('confirmation_required', 'Para aplicar el plan hay que confirmarlo de forma explícita.')
     const { store, clock } = this.core
+    const pending = this.get(planId)
+    if (pending.status === 'pending' && Date.parse(pending.expiresAt) <= clock.now().getTime()) {
+      store.plans.update({ ...pending, status: 'expired' })
+      throw new DomainError('plan_not_pending', 'El plan venció. Vuelve a revisarlo antes de confirmar.')
+    }
     const plan = store.transaction(() => {
       const current = this.get(planId)
-      if (current.status === 'pending' && Date.parse(current.expiresAt) <= clock.now().getTime()) {
-        store.plans.update({ ...current, status: 'expired' })
-        throw new DomainError('plan_not_pending', 'El plan venció. Vuelve a revisarlo antes de confirmar.')
-      }
       if (current.status !== 'pending') throw new DomainError('plan_not_pending', 'Este plan ya fue confirmado o venció.')
       const confirmed: Plan = { ...current, status: 'confirmed', decidedAt: clock.now().toISOString(), decidedBy: actor }
       store.plans.update(confirmed)

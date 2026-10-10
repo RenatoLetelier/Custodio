@@ -65,15 +65,22 @@ export class SimulatedPowerLoss extends Error {
   }
 }
 
-// Wraps a real filesystem and "cuts the power" after N bytes have been written: from then on every call fails
+// Wraps a real filesystem and can "cut the power" after N more bytes are written: from then on every call fails
 export class FaultyFileSystem implements FileSystemPort {
-  private written = 0
+  private budget: number | null = null
   dead = false
 
-  constructor(
-    private readonly inner: FileSystemPort,
-    private readonly failAfterBytes: number
-  ) {}
+  constructor(private readonly inner: FileSystemPort) {}
+
+  cutPowerAfter(bytes: number): void {
+    this.budget = bytes
+    this.dead = false
+  }
+
+  restorePower(): void {
+    this.budget = null
+    this.dead = false
+  }
 
   private alive(): void {
     if (this.dead) throw new SimulatedPowerLoss()
@@ -105,14 +112,13 @@ export class FaultyFileSystem implements FileSystemPort {
     return {
       write: async (chunk) => {
         this.alive()
-        const room = this.failAfterBytes - this.written
-        if (chunk.byteLength >= room) {
-          await handle.write(chunk.subarray(0, Math.max(0, room)))
+        if (this.budget !== null && chunk.byteLength >= this.budget) {
+          await handle.write(chunk.subarray(0, this.budget))
           await handle.close()
           this.dead = true
           throw new SimulatedPowerLoss()
         }
-        this.written += chunk.byteLength
+        if (this.budget !== null) this.budget -= chunk.byteLength
         await handle.write(chunk)
       },
       sync: async () => {
