@@ -62,9 +62,9 @@ export function registerSimControl(app: FastifyInstance, target: SimControlTarge
     return { job: await scan() }
   })
 
-  app.post('/_sim/clock/advance', async (request) => {
+  app.post('/_sim/clock/advance', (request) => {
     const body = z.object({ ms: z.number().int().positive() }).parse(request.body)
     target.clock.advance(body.ms)
-    return { now: target.clock.now().toISOString() }
+    return Promise.resolve({ now: target.clock.now().toISOString() })
   })
 }
