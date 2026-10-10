@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { cn, modifier } from '../lib/dom'
 import type { Health } from '../api/types'
 import { t, type MessageKey } from '../i18n'
@@ -93,8 +93,9 @@ export function Modal({ title, onClose, children, footer, wide = false }: { titl
     closeRef.current = onClose
   })
 
-  // Focus moves into the dialog once, and returns to whatever opened it when it closes
-  useEffect(() => {
+  // Focus moves into the dialog once, and returns to whatever opened it when it closes.
+  // Layout effect: Escape and focus already work the moment the dialog is painted
+  useLayoutEffect(() => {
     const opener = document.activeElement
     const root = dialogRef.current
     ;(root?.querySelector<HTMLElement>('[data-autofocus]') ?? root?.querySelector<HTMLElement>('button, input, select, textarea'))?.focus()
