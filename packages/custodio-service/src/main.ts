@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { pino } from 'pino'
 import { AtomicCopier } from './adapters/node/atomic-copier.js'
 import { NodeFileSystem } from './adapters/node/filesystem.js'
 import { SystemClock } from './adapters/node/system-clock.js'
@@ -10,6 +9,7 @@ import { WindowsDiskProbe, WindowsRepairer, WindowsSmartReader, WindowsVolumeRea
 import { createService, type Adapters } from './app.js'
 import { configFromEnv, type ServiceConfig } from './config.js'
 import { DEFAULT_PIPE, HelperClient } from './helper/transport.js'
+import { createLogger } from './logging.js'
 
 function helperSecret(dataDir: string): string {
   const file = join(dataDir, 'helper-secret')
@@ -34,7 +34,7 @@ function windowsAdapters(config: ServiceConfig): Adapters {
   }
 }
 
-const log = pino({ name: 'custodio-service' })
+const log = createLogger('custodio-service')
 const config = configFromEnv()
 const sim = config.adapters === 'sim' ? createSimAdapters(config.simScenario ? loadScenario(config.simScenario) : undefined) : null
 const service = createService(config, sim ?? windowsAdapters(config), { logger: log, simControl: sim ?? undefined })

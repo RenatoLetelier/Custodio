@@ -22,7 +22,8 @@ function onLines(socket: Socket, handle: (line: string) => void): void {
   })
 }
 
-export function serveHelper(helper: Helper, path: string): Promise<Server> {
+// shared: the pipe accepts every local user (the elevated helper serves the unprivileged service)
+export function serveHelper(helper: Helper, path: string, options: { shared?: boolean } = {}): Promise<Server> {
   const server = createServer((socket) => {
     onLines(socket, (line) => {
       let request: unknown
@@ -38,7 +39,7 @@ export function serveHelper(helper: Helper, path: string): Promise<Server> {
   })
   return new Promise((resolve, reject) => {
     server.once('error', reject)
-    server.listen(path, () => resolve(server))
+    server.listen({ path, readableAll: options.shared === true, writableAll: options.shared === true }, () => resolve(server))
   })
 }
 

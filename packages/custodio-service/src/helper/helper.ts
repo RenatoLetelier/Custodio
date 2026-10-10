@@ -1,4 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { win32 } from 'node:path'
 import { z } from 'zod'
 import { runFile, type CommandResult } from '../adapters/node/exec.js'
 import { assertRealAdaptersAllowed } from '../adapters/windows/guard.js'
@@ -8,11 +10,23 @@ export interface CommandRunner {
   run(file: string, args: string[]): Promise<CommandResult>
 }
 
+// The elevated helper never trusts PATH for system tools; smartctl comes from its installer's folder when it is there
+export function executablePath(file: string, env: NodeJS.ProcessEnv = process.env, exists: (path: string) => boolean = existsSync): string {
+  const system32 = win32.join(env.SystemRoot ?? 'C:\\Windows', 'System32')
+  if (file === 'powershell.exe') return win32.join(system32, 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+  if (file === 'chkdsk.exe') return win32.join(system32, 'chkdsk.exe')
+  if (file === 'smartctl.exe') {
+    const installed = win32.join(env.ProgramFiles ?? 'C:\\Program Files', 'smartmontools', 'bin', 'smartctl.exe')
+    return exists(installed) ? installed : file
+  }
+  throw new Error(`${file} is not a program custodio-helper runs`)
+}
+
 // The real runner: only inside the elevated helper, never under tests
 export class ExecFileRunner implements CommandRunner {
   async run(file: string, args: string[]): Promise<CommandResult> {
     assertRealAdaptersAllowed('custodio-helper')
-    return runFile(file, args)
+    return runFile(executablePath(file), args)
   }
 }
 

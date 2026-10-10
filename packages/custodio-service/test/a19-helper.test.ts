@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, relative, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { CommandResult } from '../src/adapters/node/exec.js'
-import { ConfirmationBook, Helper, type CommandRunner } from '../src/helper/helper.js'
+import { ConfirmationBook, Helper, executablePath, type CommandRunner } from '../src/helper/helper.js'
 import { HelperClient, serveHelper } from '../src/helper/transport.js'
 
 const SECRET = 'helper-secret-0123456789abcdef'
@@ -115,5 +115,28 @@ describe('privilegios mínimos', () => {
       await new Promise((resolve) => server.close(resolve))
       await rm(dir, { recursive: true, force: true })
     }
+  })
+
+  it('A19 el canal compartido del helper (el que usa el servicio instalado) sigue exigiendo el secreto', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'custodio-helper-'))
+    const path = process.platform === 'win32' ? `\\\\.\\pipe\\custodio-test-${randomBytes(6).toString('hex')}` : join(dir, 'helper.sock')
+    const runner = new RecordingRunner()
+    const server = await serveHelper(new Helper(runner, SECRET), path, { shared: true })
+    try {
+      expect(await new HelperClient(path, 'secreto-falso').call('chkdsk.scan', { drive: 'D:' })).toMatchObject({ ok: false, error: { code: 'unauthorized' } })
+      expect(await new HelperClient(path, SECRET).call('chkdsk.scan', { drive: 'D:' })).toMatchObject({ ok: true })
+      expect(runner.calls).toEqual([{ file: 'chkdsk.exe', args: ['D:', '/scan'] }])
+    } finally {
+      await new Promise((resolve) => server.close(resolve))
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('A19 el helper no busca en PATH las herramientas del sistema', () => {
+    const env = { SystemRoot: 'C:\\Windows', ProgramFiles: 'C:\\Program Files' }
+    expect(executablePath('powershell.exe', env)).toBe('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe')
+    expect(executablePath('chkdsk.exe', env)).toBe('C:\\Windows\\System32\\chkdsk.exe')
+    expect(executablePath('smartctl.exe', env, () => true)).toBe('C:\\Program Files\\smartmontools\\bin\\smartctl.exe')
+    expect(() => executablePath('format.com', env)).toThrow()
   })
 })
