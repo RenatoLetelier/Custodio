@@ -1,0 +1,19 @@
+{
+  "name": "custodio-service",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Servicio de Custodio: API /v1, scheduler y lógica de discos y respaldos",
+  "author": "Renato Letelier",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "e2e": "vitest run --config vitest.e2e.config.ts",
+    "verify": "tsx ../../scripts/verify.ts --scope=core"
+  },
+  "dependencies": {
+    "fastify": "5.12.5",
+    "pino": "10.4.0",
+    "zod": "4.6.5"
+  }
+}
