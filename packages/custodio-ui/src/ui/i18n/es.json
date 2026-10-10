@@ -1,0 +1,16 @@
+{
+  "app": {
+    "name": "Custodio",
+    "mark": "CU",
+    "tagline": "Tus discos y copias de seguridad, bajo control."
+  },
+  "nav": {
+    "label": "Secciones",
+    "overview": "Resumen",
+    "disks": "Discos",
+    "projects": "Proyectos",
+    "backups": "Respaldos",
+    "activity": "Actividad",
+    "settings": "Configuración"
+  }
+}

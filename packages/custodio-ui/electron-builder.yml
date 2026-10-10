@@ -1,0 +1,30 @@
+appId: com.custodio.app
+productName: Custodio
+copyright: Copyright © 2026 Renato Letelier
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - out/**/*
+  - package.json
+
+asar: true
+# No native modules: SQLite comes with Node itself
+npmRebuild: false
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  signExecutable: false
+
+# Per-machine install asks for administrator rights: it registers the service and the helper
+nsis:
+  oneClick: false
+  perMachine: true
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
