@@ -8,6 +8,7 @@
   "scripts": {
     "start": "tsx src/main.ts",
     "start:helper": "tsx src/helper/main.ts",
+    "bundle": "tsx scripts/bundle.ts",
     "contracts": "tsx scripts/generate-contracts.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
@@ -24,6 +25,7 @@
     "@seriousme/openapi-schema-validator": "2.11.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
+    "esbuild": "0.25.12",
     "yaml": "2.9.1"
   }
 }

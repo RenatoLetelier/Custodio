@@ -1,7 +1,7 @@
 {
   "name": "custodio-ui",
   "productName": "Custodio",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Aplicación de escritorio de Custodio",
   "author": "Renato Letelier",
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p src/ui/tsconfig.json && tsc --noEmit -p e2e/tsconfig.json",
     "test": "vitest run",
     "e2e:ui": "playwright test",
-    "dist:win": "electron-vite build && electron-builder --win --publish never",
+    "dist:win": "tsx ../custodio-service/scripts/bundle.ts && electron-vite build && electron-builder --win --publish never",
     "verify": "tsx ../../scripts/verify.ts --scope=ui",
     "postinstall": "install-electron"
   },

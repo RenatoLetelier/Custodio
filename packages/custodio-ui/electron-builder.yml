@@ -12,6 +12,11 @@ files:
   - package.json
 
 asar: true
+
+# The service, the helper, their Node runtime and the scripts that register them (npm run bundle in custodio-service)
+extraResources:
+  - from: ../custodio-service/dist
+    to: service
 # No native modules: SQLite comes with Node itself
 npmRebuild: false
 
@@ -21,7 +26,7 @@ win:
       arch: [x64]
   signExecutable: false
 
-# Per-machine install asks for administrator rights: it registers the service and the helper
+# Per-machine install asks for administrator rights: build/installer.nsh registers the service and the helper
 nsis:
   oneClick: false
   perMachine: true

@@ -56,6 +56,25 @@ describe('distribución', () => {
     expect(runs.join('\n')).not.toMatch(/npm publish/)
   })
 
+  it('U12 el instalador lleva el servicio y el helper, los registra al instalar y los retira al desinstalar', () => {
+    const ui = JSON.parse(read('packages/custodio-ui/package.json')) as { scripts: Record<string, string> }
+    expect(ui.scripts['dist:win']).toMatch(/custodio-service\/scripts\/bundle\.ts && .*electron-builder --win/)
+    const builder = parse(read('packages/custodio-ui/electron-builder.yml')) as { extraResources?: { from: string; to: string }[] }
+    expect(builder.extraResources).toContainEqual({ from: '../custodio-service/dist', to: 'service' })
+
+    const nsis = read('packages/custodio-ui/build/installer.nsh')
+    const macro = (name: string) => new RegExp(`!macro ${name}\\n([\\s\\S]*?)!macroend`).exec(nsis.replace(/\r\n/g, '\n'))?.[1] ?? ''
+    expect(macro('customInstall')).toMatch(/resources\\service\\install-tasks\.ps1/)
+    expect(macro('customUnInstall')).toMatch(/resources\\service\\uninstall-tasks\.ps1/)
+
+    const install = read('packages/custodio-service/deploy/windows/install-tasks.ps1')
+    expect(install).toMatch(/TaskName 'custodio-helper'[\s\S]*-UserId 'SYSTEM'[\s\S]*-RunLevel Highest/)
+    expect(install).toMatch(/TaskName\s*=\s*'custodio-service'/)
+    // The service runs as the user without elevation, whichever way it gets registered
+    expect(install.match(/-RunLevel \w+/g)).toEqual(['-RunLevel Highest', '-RunLevel Limited', '-RunLevel Limited'])
+    expect(read('packages/custodio-service/deploy/windows/production.env')).toMatch(/^CUSTODIO_ADAPTERS=windows$/m)
+  })
+
   it('U12 todos los package.json son privados', () => {
     const manifests = ['package.json', ...readdirSync(join(ROOT, 'packages')).map((p) => `packages/${p}/package.json`)]
     expect(manifests.length).toBeGreaterThanOrEqual(3)
