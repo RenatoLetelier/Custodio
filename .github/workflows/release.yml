@@ -1,0 +1,39 @@
+# Al crear un tag v* construye el instalador de Windows con electron-builder y lo publica en GitHub Releases.
+# Nada se publica en npm: todos los package.json son privados.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Versión desde el tag
+        shell: bash
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --workspace custodio-ui
+
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Construir el instalador de Windows (electron-builder)
+        run: npm run dist:win
+
+      - name: Publicar en GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/custodio-ui/dist/*.exe
+          fail_on_unmatched_files: true
