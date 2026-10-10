@@ -1,0 +1,3154 @@
+# Generado por "npm run contracts" desde packages/custodio-service/src/api/contract.ts. No editar a mano.
+openapi: 3.1.0
+info:
+  title: Custodio API
+  version: 1.0.0
+  description: API local del servicio de Custodio. Solo escucha en 127.0.0.1 y exige el token del servicio. Las operaciones largas responden 202 con un trabajo que se consulta y se cancela en /v1/jobs. Todos los errores usan el mismo formato ApiError.
+servers:
+  - url: http://127.0.0.1:47600
+security:
+  - serviceToken: []
+tags:
+  - name: Servicio
+  - name: Discos
+  - name: Proyectos
+  - name: Respaldos
+  - name: Recuperación
+  - name: Planes
+  - name: Trabajos
+  - name: Eventos
+  - name: Auditoría
+paths:
+  /v1/health:
+    get:
+      operationId: getHealth
+      summary: Estado del servicio
+      tags:
+        - Servicio
+      security:
+        - serviceToken: []
+      responses:
+        "200":
+          description: En marcha
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a1
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a1
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a1
+  /v1/openapi.json:
+    get:
+      operationId: getOpenApi
+      summary: Este contrato, en JSON
+      tags:
+        - Servicio
+      security:
+        - serviceToken: []
+      responses:
+        "200":
+          description: Documento OpenAPI
+          content:
+            application/json:
+              schema:
+                type: object
+                propertyNames:
+                  type: string
+                additionalProperties: {}
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a2
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a2
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a2
+  /v1/overview:
+    get:
+      operationId: getOverview
+      summary: Cómo está todo de un vistazo
+      tags:
+        - Servicio
+      security:
+        - serviceToken: []
+      responses:
+        "200":
+          description: Resumen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Overview"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a3
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a3
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a3
+  /v1/disks:
+    get:
+      operationId: listDisks
+      summary: Discos conocidos, conectados o no
+      tags:
+        - Discos
+      security:
+        - serviceToken: []
+      responses:
+        "200":
+          description: Discos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Disk"
+                required:
+                  - disks
+                additionalProperties: false
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a4
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a4
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a4
+  /v1/disks/{diskId}:
+    get:
+      operationId: getDisk
+      summary: Un disco
+      tags:
+        - Discos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: diskId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Disco
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Disk"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a5
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a5
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a5
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a5
+  /v1/disks/scan:
+    post:
+      operationId: scanDisks
+      summary: Vuelve a leer discos, salud y espacio
+      tags:
+        - Discos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      responses:
+        "202":
+          description: "Aceptado: el trabajo corre en segundo plano"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a6
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a6
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a6
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a6
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a6
+  /v1/projects:
+    get:
+      operationId: listProjects
+      summary: Proyectos
+      tags:
+        - Proyectos
+      security:
+        - serviceToken: []
+      responses:
+        "200":
+          description: Proyectos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProjectView"
+                required:
+                  - projects
+                additionalProperties: false
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a7
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a7
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a7
+    post:
+      operationId: createProject
+      summary: Crea un proyecto vacío
+      tags:
+        - Proyectos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectView"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a8
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a8
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a8
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a8
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a8
+  /v1/projects/{projectId}:
+    get:
+      operationId: getProject
+      summary: Un proyecto
+      tags:
+        - Proyectos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Proyecto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectView"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a9
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a9
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a9
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a9
+  /v1/projects/{projectId}/topology:
+    get:
+      operationId: getTopology
+      summary: Valida orígenes, destinos y espacio
+      tags:
+        - Proyectos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Validación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Topology"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a10
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a10
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a10
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a10
+  /v1/projects/{projectId}/plans:
+    post:
+      operationId: proposeAssignments
+      summary: Propone asignar carpetas, cambiar roles o retirar discos. No aplica nada hasta confirmar
+      tags:
+        - Proyectos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposeAssignmentsRequest"
+      responses:
+        "201":
+          description: Plan pendiente de confirmación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanProposal"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a11
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a11
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a11
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a11
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a11
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a11
+  /v1/projects/{projectId}/policies:
+    post:
+      operationId: createPolicy
+      summary: Crea una copia programada
+      tags:
+        - Respaldos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PolicyInput"
+      responses:
+        "201":
+          description: Creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Policy"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a12
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a12
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a12
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a12
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a12
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a12
+  /v1/projects/{projectId}/deletions:
+    post:
+      operationId: previewDeletion
+      summary: Prepara el borrado de archivos en las copias (nunca en el origen). Requiere confirmar el plan
+      tags:
+        - Proyectos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeletionRequest"
+      responses:
+        "201":
+          description: Plan de borrado pendiente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a13
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a13
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a13
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a13
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a13
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a13
+    get:
+      operationId: listDeletions
+      summary: Órdenes de borrado y su avance por disco
+      tags:
+        - Proyectos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Órdenes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeletionOrder"
+                required:
+                  - orders
+                additionalProperties: false
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a14
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a14
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a14
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a14
+  /v1/recovery/scan:
+    post:
+      operationId: reconstructProjects
+      summary: Lee volume.json en los discos conectados y reconstruye los proyectos
+      tags:
+        - Recuperación
+      security:
+        - serviceToken: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      responses:
+        "200":
+          description: Proyectos encontrados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ReconstructedProject"
+                required:
+                  - projects
+                additionalProperties: false
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a15
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a15
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a15
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a15
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a15
+  /v1/recovery/import:
+    post:
+      operationId: importProject
+      summary: Recupera un proyecto encontrado en los discos
+      tags:
+        - Recuperación
+      security:
+        - serviceToken: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportProjectRequest"
+      responses:
+        "201":
+          description: Proyecto recuperado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectView"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a16
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a16
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a16
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a16
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a16
+  /v1/plans/{planId}:
+    get:
+      operationId: getPlan
+      summary: Un plan
+      tags:
+        - Planes
+      security:
+        - serviceToken: []
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a17
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a17
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a17
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a17
+  /v1/plans/{planId}/confirm:
+    post:
+      operationId: confirmPlan
+      summary: "Aplica un plan. Exige confirm: true"
+      tags:
+        - Planes
+      security:
+        - serviceToken: []
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmPlanRequest"
+      responses:
+        "200":
+          description: Aplicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanConfirmed"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a18
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a18
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a18
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a18
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a18
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a18
+  /v1/policies/{policyId}:
+    get:
+      operationId: getPolicy
+      summary: Una copia programada
+      tags:
+        - Respaldos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Copia
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Policy"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a19
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a19
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a19
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a19
+    patch:
+      operationId: updatePolicy
+      summary: Cambia horario, modo, límites o la pausa
+      tags:
+        - Respaldos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PolicyPatch"
+      responses:
+        "200":
+          description: Actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Policy"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a20
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a20
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a20
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a20
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a20
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a20
+  /v1/policies/{policyId}/runs:
+    post:
+      operationId: runPolicy
+      summary: Ejecuta la copia ahora (o la simula con dryRun)
+      tags:
+        - Respaldos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunPolicyRequest"
+      responses:
+        "202":
+          description: "Aceptado: el trabajo corre en segundo plano"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a21
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a21
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a21
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a21
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a21
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a21
+  /v1/policies/{policyId}/verifications:
+    post:
+      operationId: verifyPolicy
+      summary: Revisa por hash una muestra de las copias
+      tags:
+        - Respaldos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyPolicyRequest"
+      responses:
+        "202":
+          description: "Aceptado: el trabajo corre en segundo plano"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a22
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a22
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a22
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a22
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a22
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a22
+  /v1/jobs:
+    get:
+      operationId: listJobs
+      summary: Trabajos recientes
+      tags:
+        - Trabajos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: policyId
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - backup
+              - verification
+              - inventory_scan
+              - deletion
+        - name: status
+          in: query
+          required: false
+          schema:
+            description: Estados separados por coma
+            type: string
+          description: Estados separados por coma
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 100
+            type: integer
+            minimum: 1
+            maximum: 500
+      responses:
+        "200":
+          description: Trabajos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Job"
+                required:
+                  - jobs
+                additionalProperties: false
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a23
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a23
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a23
+  /v1/jobs/{jobId}:
+    get:
+      operationId: getJob
+      summary: Un trabajo
+      tags:
+        - Trabajos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Trabajo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a24
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a24
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a24
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a24
+  /v1/jobs/{jobId}/cancel:
+    post:
+      operationId: cancelJob
+      summary: Cancela un trabajo en curso
+      tags:
+        - Trabajos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Repetir la misma petición con la misma clave devuelve la misma respuesta sin repetir el efecto
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      responses:
+        "202":
+          description: Cancelación pedida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a25
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a25
+        "404":
+          description: No existe (not_found)
+          content:
+            application/json:
+              schema: *a25
+        "409":
+          description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
+          content:
+            application/json:
+              schema: *a25
+        "422":
+          description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
+          content:
+            application/json:
+              schema: *a25
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a25
+  /v1/events:
+    get:
+      operationId: listEvents
+      summary: Eventos después de un cursor (entrega al menos una vez)
+      tags:
+        - Eventos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: after
+          in: query
+          required: false
+          schema:
+            default: 0
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 100
+            type: integer
+            minimum: 1
+            maximum: 500
+        - name: types
+          in: query
+          required: false
+          schema:
+            description: Tipos separados por coma
+            type: string
+          description: Tipos separados por coma
+      responses:
+        "200":
+          description: Página de eventos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventPage"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a26
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a26
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a26
+  /v1/events/stream:
+    get:
+      operationId: streamEvents
+      summary: Eventos en vivo (Server-Sent Events). Acepta Last-Event-ID o ?after=
+      tags:
+        - Eventos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: after
+          in: query
+          required: false
+          schema:
+            default: 0
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Flujo text/event-stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a27
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a27
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a27
+  /v1/audit:
+    get:
+      operationId: listAudit
+      summary: Quién pidió qué
+      tags:
+        - Auditoría
+      security:
+        - serviceToken: []
+      parameters:
+        - name: after
+          in: query
+          required: false
+          schema:
+            default: 0
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 100
+            type: integer
+            minimum: 1
+            maximum: 500
+      responses:
+        "200":
+          description: Entradas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditPage"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a28
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a28
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a28
+components:
+  securitySchemes:
+    serviceToken:
+      type: http
+      scheme: bearer
+      description: "Token del servicio (Authorization: Bearer <token>)"
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Código estable en inglés, para programas
+            message:
+              type: string
+              description: Explicación en español, para personas
+            details: {}
+          required:
+            - code
+            - message
+          additionalProperties: false
+      required:
+        - error
+      additionalProperties: false
+      description: Error uniforme de toda la API
+    Assignment:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        projectId:
+          type: string
+          minLength: 1
+        diskId:
+          type: string
+          minLength: 1
+        folder:
+          type: string
+        role:
+          type: string
+          enum:
+            - storage
+            - backup
+        label:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - diskId
+        - folder
+        - role
+        - label
+        - createdAt
+      additionalProperties: false
+    AuditEntry:
+      type: object
+      properties:
+        seq:
+          type: integer
+        id:
+          type: string
+          minLength: 1
+        at:
+          type: string
+          format: date-time
+        actor:
+          type: string
+        action:
+          type: string
+        target:
+          type: string
+        details:
+          type: object
+          propertyNames:
+            type: string
+          additionalProperties: {}
+      required:
+        - seq
+        - id
+        - at
+        - actor
+        - action
+        - target
+        - details
+      additionalProperties: false
+    AuditPage:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEntry"
+        nextCursor:
+          type: integer
+          minimum: 0
+      required:
+        - entries
+        - nextCursor
+      additionalProperties: false
+    Capacity:
+      type: object
+      properties:
+        totalBytes:
+          type: integer
+          minimum: 0
+        usedBytes:
+          type: integer
+          minimum: 0
+        freeBytes:
+          type: integer
+          minimum: 0
+        freePercent:
+          type: number
+        daysUntilFull:
+          type:
+            - number
+            - "null"
+      required:
+        - totalBytes
+        - usedBytes
+        - freeBytes
+        - freePercent
+        - daysUntilFull
+      additionalProperties: false
+    ConfirmPlanRequest:
+      type: object
+      properties:
+        confirm:
+          type: boolean
+      required:
+        - confirm
+    CreateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+      required:
+        - name
+    DeletionOrder:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        projectId:
+          type: string
+          minLength: 1
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              sourceId:
+                type: string
+                minLength: 1
+              path:
+                type: string
+            required:
+              - sourceId
+              - path
+            additionalProperties: false
+        createdAt:
+          type: string
+          format: date-time
+        requestedBy:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - completed
+        targets:
+          type: array
+          items:
+            type: object
+            properties:
+              orderId:
+                type: string
+                minLength: 1
+              destinationId:
+                type: string
+                minLength: 1
+              status:
+                type: string
+                enum:
+                  - pending
+                  - done
+              attempts:
+                type: integer
+              lastError:
+                type:
+                  - string
+                  - "null"
+              doneAt:
+                anyOf:
+                  - type: string
+                    format: date-time
+                  - type: "null"
+            required:
+              - orderId
+              - destinationId
+              - status
+              - attempts
+              - lastError
+              - doneAt
+            additionalProperties: false
+      required:
+        - id
+        - projectId
+        - items
+        - createdAt
+        - requestedBy
+        - status
+        - targets
+      additionalProperties: false
+    DeletionRequest:
+      type: object
+      properties:
+        items:
+          minItems: 1
+          maxItems: 1000
+          type: array
+          items:
+            type: object
+            properties:
+              sourceId:
+                type: string
+                minLength: 1
+              path:
+                type: string
+                minLength: 1
+            required:
+              - sourceId
+              - path
+        destinations:
+          minItems: 1
+          type: array
+          items:
+            type: string
+            minLength: 1
+      required:
+        - items
+    Disk:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        serial:
+          type:
+            - string
+            - "null"
+        wwn:
+          type:
+            - string
+            - "null"
+        model:
+          type: string
+        sizeBytes:
+          type: integer
+          minimum: 0
+        bus:
+          type: string
+          enum:
+            - usb
+            - sata
+            - nvme
+            - sas
+            - other
+        devicePath:
+          type: string
+        mountPath:
+          type:
+            - string
+            - "null"
+        connected:
+          type: boolean
+        state:
+          type: string
+          enum:
+            - unassigned
+            - assigned
+        health:
+          type: string
+          enum:
+            - green
+            - yellow
+            - red
+            - unknown
+        healthReasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notice"
+        advisories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notice"
+        smart:
+          anyOf:
+            - $ref: "#/components/schemas/SmartSnapshot"
+            - type: "null"
+        capacity:
+          anyOf:
+            - $ref: "#/components/schemas/Capacity"
+            - type: "null"
+        capacityLow:
+          type: boolean
+        assignments:
+          type: array
+          items:
+            type: object
+            properties:
+              assignmentId:
+                type: string
+                minLength: 1
+              projectId:
+                type: string
+                minLength: 1
+              folder:
+                type: string
+              role:
+                type: string
+                enum:
+                  - storage
+                  - backup
+              label:
+                type: string
+            required:
+              - assignmentId
+              - projectId
+              - folder
+              - role
+              - label
+            additionalProperties: false
+        firstSeenAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - serial
+        - wwn
+        - model
+        - sizeBytes
+        - bus
+        - devicePath
+        - mountPath
+        - connected
+        - state
+        - health
+        - healthReasons
+        - advisories
+        - smart
+        - capacity
+        - capacityLow
+        - assignments
+        - firstSeenAt
+        - lastSeenAt
+      additionalProperties: false
+    Event:
+      oneOf:
+        - type: object
+          properties:
+            seq:
+              type: integer
+              exclusiveMinimum: 0
+            id:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              const: disk.detected
+            occurredAt:
+              type: string
+              format: date-time
+            payload:
+              type: object
+              properties:
+                diskId:
+                  type: string
+                serial:
+                  type:
+                    - string
+                    - "null"
+                wwn:
+                  type:
+                    - string
+                    - "null"
+                model:
+                  type: string
+                sizeBytes:
+                  type: integer
+                  minimum: 0
+                mountPath:
+                  type:
+                    - string
+                    - "null"
+              required:
+                - diskId
+                - serial
+                - wwn
+                - model
+                - sizeBytes
+                - mountPath
+              additionalProperties: false
+          required:
+            - seq
+            - id
+            - type
+            - occurredAt
+            - payload
+          additionalProperties: false
+        - type: object
+          properties:
+            seq:
+              type: integer
+              exclusiveMinimum: 0
+            id:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              const: disk.health_changed
+            occurredAt:
+              type: string
+              format: date-time
+            payload:
+              type: object
+              properties:
+                diskId:
+                  type: string
+                previous:
+                  type: string
+                  enum:
+                    - green
+                    - yellow
+                    - red
+                    - unknown
+                current:
+                  type: string
+                  enum:
+                    - green
+                    - yellow
+                    - red
+                    - unknown
+                reasons:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - diskId
+                - previous
+                - current
+                - reasons
+              additionalProperties: false
+          required:
+            - seq
+            - id
+            - type
+            - occurredAt
+            - payload
+          additionalProperties: false
+        - type: object
+          properties:
+            seq:
+              type: integer
+              exclusiveMinimum: 0
+            id:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              const: capacity.low
+            occurredAt:
+              type: string
+              format: date-time
+            payload:
+              type: object
+              properties:
+                diskId:
+                  type: string
+                totalBytes:
+                  type: integer
+                  minimum: 0
+                freeBytes:
+                  type: integer
+                  minimum: 0
+                freePercent:
+                  type: number
+                daysUntilFull:
+                  type:
+                    - number
+                    - "null"
+              required:
+                - diskId
+                - totalBytes
+                - freeBytes
+                - freePercent
+                - daysUntilFull
+              additionalProperties: false
+          required:
+            - seq
+            - id
+            - type
+            - occurredAt
+            - payload
+          additionalProperties: false
+        - type: object
+          properties:
+            seq:
+              type: integer
+              exclusiveMinimum: 0
+            id:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              const: backup.completed
+            occurredAt:
+              type: string
+              format: date-time
+            payload:
+              type: object
+              properties:
+                jobId:
+                  type: string
+                policyId:
+                  type: string
+                projectId:
+                  type: string
+                filesCopied:
+                  type: integer
+                  minimum: 0
+                bytesCopied:
+                  type: integer
+                  minimum: 0
+                filesSkipped:
+                  type: integer
+                  minimum: 0
+                filesDeleted:
+                  type: integer
+                  minimum: 0
+                durationMs:
+                  type: integer
+                  minimum: 0
+              required:
+                - jobId
+                - policyId
+                - projectId
+                - filesCopied
+                - bytesCopied
+                - filesSkipped
+                - filesDeleted
+                - durationMs
+              additionalProperties: false
+          required:
+            - seq
+            - id
+            - type
+            - occurredAt
+            - payload
+          additionalProperties: false
+        - type: object
+          properties:
+            seq:
+              type: integer
+              exclusiveMinimum: 0
+            id:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              const: backup.failed
+            occurredAt:
+              type: string
+              format: date-time
+            payload:
+              type: object
+              properties:
+                jobId:
+                  type: string
+                policyId:
+                  type: string
+                projectId:
+                  type: string
+                code:
+                  type: string
+                message:
+                  type: string
+              required:
+                - jobId
+                - policyId
+                - projectId
+                - code
+                - message
+              additionalProperties: false
+          required:
+            - seq
+            - id
+            - type
+            - occurredAt
+            - payload
+          additionalProperties: false
+        - type: object
+          properties:
+            seq:
+              type: integer
+              exclusiveMinimum: 0
+            id:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              const: backup.overdue
+            occurredAt:
+              type: string
+              format: date-time
+            payload:
+              type: object
+              properties:
+                policyId:
+                  type: string
+                projectId:
+                  type: string
+                lastSuccessAt:
+                  anyOf:
+                    - type: string
+                      format: date-time
+                    - type: "null"
+                expectedIntervalMs:
+                  type: integer
+                  exclusiveMinimum: 0
+                overdueSince:
+                  type: string
+                  format: date-time
+              required:
+                - policyId
+                - projectId
+                - lastSuccessAt
+                - expectedIntervalMs
+                - overdueSince
+              additionalProperties: false
+          required:
+            - seq
+            - id
+            - type
+            - occurredAt
+            - payload
+          additionalProperties: false
+        - type: object
+          properties:
+            seq:
+              type: integer
+              exclusiveMinimum: 0
+            id:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              const: backup.corruption_detected
+            occurredAt:
+              type: string
+              format: date-time
+            payload:
+              type: object
+              properties:
+                jobId:
+                  type: string
+                policyId:
+                  type: string
+                projectId:
+                  type: string
+                destinationId:
+                  type: string
+                diskId:
+                  type: string
+                path:
+                  type: string
+                expectedSha256:
+                  type: string
+                actualSha256:
+                  type:
+                    - string
+                    - "null"
+              required:
+                - jobId
+                - policyId
+                - projectId
+                - destinationId
+                - diskId
+                - path
+                - expectedSha256
+                - actualSha256
+              additionalProperties: false
+          required:
+            - seq
+            - id
+            - type
+            - occurredAt
+            - payload
+          additionalProperties: false
+    EventPage:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        nextCursor:
+          type: integer
+          minimum: 0
+      required:
+        - events
+        - nextCursor
+      additionalProperties: false
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          const: ok
+        version:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+      required:
+        - status
+        - version
+        - startedAt
+      additionalProperties: false
+    ImportProjectRequest:
+      type: object
+      properties:
+        projectId:
+          type: string
+          minLength: 1
+      required:
+        - projectId
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        kind:
+          type: string
+          enum:
+            - backup
+            - verification
+            - inventory_scan
+            - deletion
+        status:
+          type: string
+          enum:
+            - queued
+            - running
+            - succeeded
+            - failed
+            - cancelled
+            - interrupted
+            - skipped
+        trigger:
+          type: string
+          enum:
+            - manual
+            - schedule
+            - catch_up
+        policyId:
+          type:
+            - string
+            - "null"
+        projectId:
+          type:
+            - string
+            - "null"
+        scheduledFor:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        dryRun:
+          type: boolean
+        progress:
+          $ref: "#/components/schemas/JobProgress"
+        result:
+          anyOf:
+            - type: object
+              propertyNames:
+                type: string
+              additionalProperties: {}
+            - type: "null"
+        error:
+          anyOf:
+            - type: object
+              properties:
+                code:
+                  type: string
+                message:
+                  type: string
+                details: {}
+              required:
+                - code
+                - message
+              additionalProperties: false
+            - type: "null"
+        requestedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        finishedAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+      required:
+        - id
+        - kind
+        - status
+        - trigger
+        - policyId
+        - projectId
+        - scheduledFor
+        - dryRun
+        - progress
+        - result
+        - error
+        - requestedBy
+        - createdAt
+        - startedAt
+        - finishedAt
+      additionalProperties: false
+    JobAccepted:
+      type: object
+      properties:
+        job:
+          $ref: "#/components/schemas/Job"
+      required:
+        - job
+      additionalProperties: false
+    JobProgress:
+      type: object
+      properties:
+        filesDone:
+          type: integer
+        filesTotal:
+          type: integer
+        bytesDone:
+          type: integer
+          minimum: 0
+        bytesTotal:
+          type: integer
+          minimum: 0
+      required:
+        - filesDone
+        - filesTotal
+        - bytesDone
+        - bytesTotal
+      additionalProperties: false
+    Notice:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        attribute:
+          type: integer
+        value:
+          type: number
+      required:
+        - code
+        - message
+      additionalProperties: false
+    Overview:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - green
+            - yellow
+            - red
+            - unknown
+        reasons:
+          type: array
+          items:
+            type: string
+        disks:
+          type: object
+          properties:
+            total:
+              type: integer
+            connected:
+              type: integer
+            unassigned:
+              type: integer
+          required:
+            - total
+            - connected
+            - unassigned
+          additionalProperties: false
+        space:
+          type: object
+          properties:
+            totalBytes:
+              type: integer
+              minimum: 0
+            freeBytes:
+              type: integer
+              minimum: 0
+          required:
+            - totalBytes
+            - freeBytes
+          additionalProperties: false
+        lastBackup:
+          anyOf:
+            - type: object
+              properties:
+                id:
+                  type: string
+                  minLength: 1
+                policyId:
+                  type:
+                    - string
+                    - "null"
+                status:
+                  type: string
+                finishedAt:
+                  anyOf:
+                    - type: string
+                      format: date-time
+                    - type: "null"
+              required:
+                - id
+                - policyId
+                - status
+                - finishedAt
+              additionalProperties: false
+            - type: "null"
+        nextBackup:
+          anyOf:
+            - type: object
+              properties:
+                policyId:
+                  type: string
+                  minLength: 1
+                at:
+                  type: string
+                  format: date-time
+              required:
+                - policyId
+                - at
+              additionalProperties: false
+            - type: "null"
+      required:
+        - status
+        - reasons
+        - disks
+        - space
+        - lastBackup
+        - nextBackup
+      additionalProperties: false
+    Plan:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        kind:
+          type: string
+          enum:
+            - assignments
+            - deletion
+            - repair
+        projectId:
+          type:
+            - string
+            - "null"
+        status:
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - expired
+        payload:
+          type: object
+          propertyNames:
+            type: string
+          additionalProperties: {}
+        preview:
+          $ref: "#/components/schemas/PlanPreview"
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        decidedAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        decidedBy:
+          type:
+            - string
+            - "null"
+        createdBy:
+          type: string
+      required:
+        - id
+        - kind
+        - projectId
+        - status
+        - payload
+        - preview
+        - createdAt
+        - expiresAt
+        - decidedAt
+        - decidedBy
+        - createdBy
+      additionalProperties: false
+    PlanConfirmed:
+      type: object
+      properties:
+        plan:
+          $ref: "#/components/schemas/Plan"
+        result:
+          type: object
+          propertyNames:
+            type: string
+          additionalProperties: {}
+      required:
+        - plan
+        - result
+      additionalProperties: false
+    PlanPreview:
+      type: object
+      properties:
+        summary:
+          type: string
+        lines:
+          type: array
+          items:
+            type: string
+        movesData:
+          type: boolean
+        deletesData:
+          type: boolean
+        bytesToCopy:
+          type: integer
+          minimum: 0
+        filesToDelete:
+          type: integer
+          minimum: 0
+      required:
+        - summary
+        - lines
+        - movesData
+        - deletesData
+        - bytesToCopy
+        - filesToDelete
+      additionalProperties: false
+    PlanProposal:
+      type: object
+      properties:
+        plan:
+          $ref: "#/components/schemas/Plan"
+        topology:
+          $ref: "#/components/schemas/Topology"
+      required:
+        - plan
+        - topology
+      additionalProperties: false
+    Policy:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        projectId:
+          type: string
+          minLength: 1
+        name:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        destinations:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        cron:
+          type: string
+        timezone:
+          type: string
+        mode:
+          type: string
+          enum:
+            - append
+            - retention
+            - mirror
+        retentionDays:
+          type: integer
+        maxDeletePercent:
+          type: number
+        mirrorConfirmed:
+          type: boolean
+        maxMegabytesPerSecond:
+          type:
+            - number
+            - "null"
+        window:
+          anyOf:
+            - type: object
+              properties:
+                start:
+                  type: string
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                end:
+                  type: string
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+              required:
+                - start
+                - end
+              additionalProperties: false
+            - type: "null"
+        verifySamplePercent:
+          type: number
+        verifyEveryHours:
+          type: integer
+        paused:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastScheduledFor:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        lastSuccessAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        lastVerifiedAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        overdueSince:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        nextRunAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+      required:
+        - id
+        - projectId
+        - name
+        - sources
+        - destinations
+        - cron
+        - timezone
+        - mode
+        - retentionDays
+        - maxDeletePercent
+        - mirrorConfirmed
+        - maxMegabytesPerSecond
+        - window
+        - verifySamplePercent
+        - verifyEveryHours
+        - paused
+        - createdAt
+        - lastScheduledFor
+        - lastSuccessAt
+        - lastVerifiedAt
+        - overdueSince
+        - nextRunAt
+      additionalProperties: false
+    PolicyInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        sources:
+          minItems: 1
+          type: array
+          items:
+            type: string
+            minLength: 1
+        destinations:
+          minItems: 1
+          type: array
+          items:
+            type: string
+            minLength: 1
+        cron:
+          type: string
+          minLength: 1
+        timezone:
+          type: string
+          minLength: 1
+        mode:
+          default: append
+          type: string
+          enum:
+            - append
+            - retention
+            - mirror
+        retentionDays:
+          default: 30
+          type: integer
+          minimum: 1
+          maximum: 3650
+        maxDeletePercent:
+          default: 10
+          type: number
+          minimum: 0
+          maximum: 100
+        mirrorConfirmed:
+          default: false
+          type: boolean
+        maxMegabytesPerSecond:
+          default: null
+          anyOf:
+            - type: number
+              exclusiveMinimum: 0
+              maximum: 100000
+            - type: "null"
+        window:
+          default: null
+          anyOf:
+            - type: object
+              properties:
+                start:
+                  type: string
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                end:
+                  type: string
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+              required:
+                - start
+                - end
+            - type: "null"
+        verifySamplePercent:
+          default: 5
+          type: number
+          minimum: 0
+          maximum: 100
+        verifyEveryHours:
+          default: 168
+          type: integer
+          minimum: 0
+          maximum: 8760
+        paused:
+          default: false
+          type: boolean
+      required:
+        - name
+        - sources
+        - destinations
+        - cron
+        - timezone
+    PolicyPatch:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        sources:
+          minItems: 1
+          type: array
+          items:
+            type: string
+            minLength: 1
+        destinations:
+          minItems: 1
+          type: array
+          items:
+            type: string
+            minLength: 1
+        cron:
+          type: string
+          minLength: 1
+        timezone:
+          type: string
+          minLength: 1
+        mode:
+          type: string
+          enum:
+            - append
+            - retention
+            - mirror
+        retentionDays:
+          type: integer
+          minimum: 1
+          maximum: 3650
+        maxDeletePercent:
+          type: number
+          minimum: 0
+          maximum: 100
+        mirrorConfirmed:
+          type: boolean
+        maxMegabytesPerSecond:
+          anyOf:
+            - type: number
+              exclusiveMinimum: 0
+              maximum: 100000
+            - type: "null"
+        window:
+          anyOf:
+            - type: object
+              properties:
+                start:
+                  type: string
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                end:
+                  type: string
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+              required:
+                - start
+                - end
+            - type: "null"
+        verifySamplePercent:
+          type: number
+          minimum: 0
+          maximum: 100
+        verifyEveryHours:
+          type: integer
+          minimum: 0
+          maximum: 8760
+        paused:
+          type: boolean
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        revision:
+          type: integer
+      required:
+        - id
+        - name
+        - createdAt
+        - revision
+      additionalProperties: false
+    ProjectView:
+      type: object
+      properties:
+        project:
+          $ref: "#/components/schemas/Project"
+        assignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Assignment"
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/Policy"
+        topology:
+          $ref: "#/components/schemas/Topology"
+      required:
+        - project
+        - assignments
+        - policies
+        - topology
+      additionalProperties: false
+    ProposeAssignmentsRequest:
+      type: object
+      properties:
+        actions:
+          minItems: 1
+          type: array
+          items:
+            oneOf:
+              - type: object
+                properties:
+                  type:
+                    type: string
+                    const: add_assignment
+                  diskId:
+                    type: string
+                    minLength: 1
+                  folder:
+                    type: string
+                  role:
+                    type: string
+                    enum:
+                      - storage
+                      - backup
+                  label:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                required:
+                  - type
+                  - diskId
+                  - folder
+                  - role
+              - type: object
+                properties:
+                  type:
+                    type: string
+                    const: change_role
+                  assignmentId:
+                    type: string
+                    minLength: 1
+                  role:
+                    type: string
+                    enum:
+                      - storage
+                      - backup
+                required:
+                  - type
+                  - assignmentId
+                  - role
+              - type: object
+                properties:
+                  type:
+                    type: string
+                    const: remove_assignment
+                  assignmentId:
+                    type: string
+                    minLength: 1
+                required:
+                  - type
+                  - assignmentId
+      required:
+        - actions
+    ReconstructedProject:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        name:
+          type: string
+        createdAt:
+          type: string
+        revision:
+          type: integer
+        assignments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+              folder:
+                type: string
+              role:
+                type: string
+                enum:
+                  - storage
+                  - backup
+              label:
+                type: string
+              disk:
+                type: object
+                properties:
+                  serial:
+                    type:
+                      - string
+                      - "null"
+                  wwn:
+                    type:
+                      - string
+                      - "null"
+                  model:
+                    type: string
+                required:
+                  - serial
+                  - wwn
+                  - model
+                additionalProperties: false
+            required:
+              - id
+              - folder
+              - role
+              - label
+              - disk
+            additionalProperties: false
+        policies:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+              name:
+                type: string
+              sources:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+              destinations:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+              cron:
+                type: string
+              timezone:
+                type: string
+              mode:
+                type: string
+                enum:
+                  - append
+                  - retention
+                  - mirror
+              retentionDays:
+                type: integer
+              maxDeletePercent:
+                type: number
+              mirrorConfirmed:
+                type: boolean
+              maxMegabytesPerSecond:
+                type:
+                  - number
+                  - "null"
+              window:
+                anyOf:
+                  - type: object
+                    properties:
+                      start:
+                        type: string
+                        pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                      end:
+                        type: string
+                        pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                    required:
+                      - start
+                      - end
+                    additionalProperties: false
+                  - type: "null"
+              verifySamplePercent:
+                type: number
+              verifyEveryHours:
+                type: integer
+              paused:
+                type: boolean
+              createdAt:
+                type: string
+                format: date-time
+            required:
+              - id
+              - name
+              - sources
+              - destinations
+              - cron
+              - timezone
+              - mode
+              - retentionDays
+              - maxDeletePercent
+              - mirrorConfirmed
+              - maxMegabytesPerSecond
+              - window
+              - verifySamplePercent
+              - verifyEveryHours
+              - paused
+              - createdAt
+            additionalProperties: false
+        foundOn:
+          type: array
+          items:
+            type: object
+            properties:
+              mountPath:
+                type: string
+              folder:
+                type: string
+              revision:
+                type: integer
+            required:
+              - mountPath
+              - folder
+              - revision
+            additionalProperties: false
+      required:
+        - id
+        - name
+        - createdAt
+        - revision
+        - assignments
+        - policies
+        - foundOn
+      additionalProperties: false
+    RunPolicyRequest:
+      type: object
+      properties:
+        dryRun:
+          type: boolean
+        mirrorDryRunJobId:
+          type: string
+          minLength: 1
+    SmartSnapshot:
+      type: object
+      properties:
+        passed:
+          type:
+            - boolean
+            - "null"
+        attributes:
+          type: object
+          propertyNames:
+            type: string
+          additionalProperties:
+            type: number
+        temperatureC:
+          type:
+            - number
+            - "null"
+        powerOnHours:
+          type:
+            - number
+            - "null"
+      required:
+        - passed
+        - attributes
+        - temperatureC
+        - powerOnHours
+      additionalProperties: false
+    Topology:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Violation"
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Violation"
+      required:
+        - valid
+        - errors
+        - warnings
+      additionalProperties: false
+    VerifyPolicyRequest:
+      type: object
+      properties:
+        samplePercent:
+          type: number
+          minimum: 0
+          maximum: 100
+    Violation:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        policyId:
+          type: string
+        assignmentId:
+          type: string
+      required:
+        - code
+        - message
+      additionalProperties: false

@@ -20,6 +20,7 @@
     "e2e:ui": "npm run e2e:ui -w custodio-ui",
     "build:ui": "npm run build -w custodio-ui",
     "dist:win": "npm run dist:win -w custodio-ui",
+    "contracts": "npm run contracts -w custodio-service",
     "acceptance": "tsx scripts/acceptance.ts",
     "verify": "tsx scripts/verify.ts"
   },

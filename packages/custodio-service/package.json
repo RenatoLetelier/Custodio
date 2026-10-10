@@ -6,14 +6,24 @@
   "author": "Renato Letelier",
   "type": "module",
   "scripts": {
+    "start": "tsx src/main.ts",
+    "start:helper": "tsx src/helper/main.ts",
+    "contracts": "tsx scripts/generate-contracts.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "e2e": "vitest run --config vitest.e2e.config.ts",
     "verify": "tsx ../../scripts/verify.ts --scope=core"
   },
   "dependencies": {
+    "croner": "10.0.1",
     "fastify": "5.12.5",
     "pino": "10.4.0",
     "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@seriousme/openapi-schema-validator": "2.11.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "yaml": "2.9.1"
   }
 }
