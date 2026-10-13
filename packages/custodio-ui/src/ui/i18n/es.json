@@ -238,6 +238,7 @@
   },
   "disks": {
     "scan": "Buscar discos",
+    "nameWithDrive": "{model} ({drive})",
     "empty": {
       "title": "No hay discos conectados",
       "body": "Conecta un disco y pulsa «Buscar discos» para empezar a cuidarlo."

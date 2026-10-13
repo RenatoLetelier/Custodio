@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import type { Plan, ProjectView, Role } from '../api/types'
 import { Badge, EmptyState, ErrorNotice, Modal, PreviewDialog, type PreviewProps } from '../components/ui'
 import { t, type MessageKey } from '../i18n'
+import { diskName as nameOf } from '../lib/disks'
 import { useNavigate } from '../navigation'
 import { useAppState } from '../state/AppState'
 
@@ -61,7 +62,7 @@ function AddDiskDialog({ project, onClose, onPreview }: { project: ProjectView; 
             <select className="input" value={diskId} onChange={(e) => setDiskId(e.target.value)}>
               {free.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.model}
+                  {nameOf(d)}
                 </option>
               ))}
             </select>
@@ -151,7 +152,10 @@ function DeleteDialog({ project, onClose, onPreview }: { project: ProjectView; o
 function ProjectCard({ view, onPreview }: { view: ProjectView; onPreview: (p: Pending) => void }) {
   const { disks } = useAppState()
   const [dialog, setDialog] = useState<'add' | 'delete' | null>(null)
-  const diskName = (id: string) => disks.find((d) => d.id === id)?.model ?? t('common.unknownDisk')
+  const diskName = (id: string) => {
+    const disk = disks.find((d) => d.id === id)
+    return disk ? nameOf(disk) : t('common.unknownDisk')
+  }
   const label = (id?: string) => view.assignments.find((a) => a.id === id)?.label ?? ''
   const warnings = view.topology.warnings.filter((w) => w.code === 'no_source' || w.code === 'no_backup')
 

@@ -5,7 +5,7 @@ import type { Disk, Plan } from '../api/types'
 import { Badge, Disclosure, EmptyState, ErrorNotice, PreviewDialog, ProgressBar, Semaphore, type PreviewProps } from '../components/ui'
 import { t, type MessageKey } from '../i18n'
 import { formatBytes, formatNumber, formatPercent } from '../i18n/format'
-import { diskStatus, suggestedAction } from '../lib/disks'
+import { diskName, diskStatus, suggestedAction } from '../lib/disks'
 import { useNavigate } from '../navigation'
 import { useAppState } from '../state/AppState'
 
@@ -68,7 +68,7 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
     try {
       const plan = await api<Plan>('POST', `/v1/disks/${disk.id}/repairs`)
       onPreview({
-        title: t('disks.repair.title', { disk: disk.model }),
+        title: t('disks.repair.title', { disk: diskName(disk) }),
         summary: plan.preview.summary,
         lines: plan.preview.lines,
         confirmLabel: t('disks.repair.confirm'),
@@ -95,8 +95,8 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
         plans.push(plan)
       }
       onPreview({
-        title: t('disks.retire.title', { disk: disk.model }),
-        summary: t('disks.retire.summary', { disk: disk.model }),
+        title: t('disks.retire.title', { disk: diskName(disk) }),
+        summary: t('disks.retire.summary', { disk: diskName(disk) }),
         lines: plans.flatMap((p) => p.preview.lines),
         confirmLabel: t('disks.retire.confirm'),
         danger: true,
@@ -115,7 +115,7 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
       <header className="disk-card__header">
         <Semaphore status={status} />
         <h3 id={domId('disk', disk.id)} className="disk-card__name">
-          {disk.model}
+          {diskName(disk)}
         </h3>
         <Badge tone={!disk.connected ? 'muted' : disk.state === 'assigned' ? 'accent' : 'warn'}>
           {t(!disk.connected ? 'disks.state.disconnected' : disk.state === 'assigned' ? 'disks.state.assigned' : 'disks.state.unassigned')}

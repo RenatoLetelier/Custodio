@@ -1,4 +1,11 @@
 import type { Disk, Health, Overview } from '../api/types'
+import { t } from '../i18n'
+
+// Two disks of one USB box usually share a model name: the drive letter tells them apart
+export function diskName(disk: Pick<Disk, 'model' | 'mountPath'>): string {
+  const drive = /^([a-z]):\\?$/i.exec(disk.mountPath ?? '')?.[1]
+  return drive ? t('disks.nameWithDrive', { model: disk.model, drive: `${drive.toUpperCase()}:` }) : disk.model
+}
 
 export type DiskAction = 'use' | 'repair' | 'reconnect' | 'freeSpace' | 'checkCable' | 'none'
 
