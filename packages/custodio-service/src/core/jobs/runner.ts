@@ -39,7 +39,7 @@ export interface InventoryTask {
 export class JobRunner {
   private readonly running = new Map<string, { controller: AbortController; done: Promise<Job> }>()
   private readonly listeners = new Set<JobListener>()
-  private readonly lastProgressAt = new Map<string, number>()
+  private readonly lastProgress = new Map<string, { at: number; phase: JobProgress['phase'] }>()
 
   constructor(
     private readonly core: Core,
@@ -204,16 +204,19 @@ export class JobRunner {
       final = this.fail(job.id, spec, error)
     } finally {
       if (spec.lock && spec.policy) this.core.store.locks.release(spec.policy.id, job.id)
-      this.lastProgressAt.delete(job.id)
+      this.lastProgress.delete(job.id)
     }
     this.notify(final)
     return final
   }
 
+  // At most every PROGRESS_EVERY_MS, except a change of phase and the last file
   private progress(jobId: string, progress: JobProgress): void {
     const now = Date.now()
-    if (now - (this.lastProgressAt.get(jobId) ?? 0) < PROGRESS_EVERY_MS && progress.filesDone < progress.filesTotal) return
-    this.lastProgressAt.set(jobId, now)
+    const last = this.lastProgress.get(jobId)
+    const finished = progress.filesTotal > 0 && progress.filesDone >= progress.filesTotal
+    if (last && now - last.at < PROGRESS_EVERY_MS && last.phase === progress.phase && !finished) return
+    this.lastProgress.set(jobId, { at: now, phase: progress.phase })
     const job = this.core.store.jobs.get(jobId)
     if (!job) return
     const updated = { ...job, progress }

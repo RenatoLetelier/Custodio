@@ -3,9 +3,10 @@ import { api } from '../api/client'
 import type { Job, Policy, ProjectView } from '../api/types'
 import { Badge, EmptyState, ErrorNotice, ProgressBar } from '../components/ui'
 import { t } from '../i18n'
-import { formatDateTime, formatList, formatPercent, formatRelative } from '../i18n/format'
+import { formatDateTime, formatList, formatRelative } from '../i18n/format'
 import { domId } from '../lib/dom'
 import { folderPath } from '../lib/disks'
+import { describeProgress, isScanning, percentOf } from '../lib/jobs'
 import { describeSchedule } from '../lib/schedule'
 import { useNavigate } from '../navigation'
 import { useAppState } from '../state/AppState'
@@ -28,7 +29,6 @@ function PolicyCard({ policy, project }: { policy: Policy; project: ProjectView 
   const policyJobs = jobs.filter((j) => j.policyId === policy.id && j.kind === 'backup' && !j.dryRun)
   const running = policyJobs.find((j) => j.status === 'running')
   const last = policyJobs.find((j) => j.status !== 'running' && j.finishedAt)
-  const percent = running && running.progress.bytesTotal > 0 ? (running.progress.bytesDone / running.progress.bytesTotal) * 100 : 0
   const titleId = domId('policy', policy.id)
 
   const call = async (fn: () => Promise<unknown>): Promise<void> => {
@@ -69,8 +69,13 @@ function PolicyCard({ policy, project }: { policy: Policy; project: ProjectView 
         </p>
       )}
       {policy.overdueSince && <p className="alert alert--warn-inline">{t('backups.overdue')}</p>}
-      {running && <ProgressBar percent={percent} label={t('activity.progressOf', { name: project.project.name })} />}
-      {running && <p className="muted">{t('backups.running', { percent: formatPercent(percent) })}</p>}
+      {running && !isScanning(running) && <ProgressBar percent={percentOf(running)} label={t('activity.progressOf', { name: project.project.name })} />}
+      {running && (
+        <p className="muted" data-testid="policy-progress">
+          {describeProgress(running)}
+        </p>
+      )}
+      {running?.progress.phase === 'checking' && <p className="muted">{t('jobs.checkingHint')}</p>}
       {error !== null && <ErrorNotice error={error} />}
       <div className="actions">
         <button type="button" className="btn btn--primary" disabled={!!running} onClick={() => void call(() => api('POST', `/v1/policies/${policy.id}/runs`, {}))}>

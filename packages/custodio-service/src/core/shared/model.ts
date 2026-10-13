@@ -104,11 +104,15 @@ export type JobKind = 'backup' | 'verification' | 'inventory_scan' | 'deletion' 
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted' | 'skipped'
 export type JobTrigger = 'manual' | 'schedule' | 'catch_up'
 
+// What a backup is doing: listing what to copy, checking what the destination already has, or copying
+export type JobPhase = 'scanning' | 'checking' | 'copying'
+
 export interface JobProgress {
   filesDone: number
   filesTotal: number
   bytesDone: number
   bytesTotal: number
+  phase?: JobPhase
 }
 
 export interface JobError {

@@ -2628,6 +2628,13 @@ components:
         bytesTotal:
           type: integer
           minimum: 0
+        phase:
+          description: "Solo en copias: scanning revisa qué falta copiar (filesDone cuenta los archivos revisados), checking compara por hash lo que ya está en el destino, copying copia"
+          type: string
+          enum:
+            - scanning
+            - checking
+            - copying
       required:
         - filesDone
         - filesTotal

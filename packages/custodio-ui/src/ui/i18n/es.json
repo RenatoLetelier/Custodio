@@ -203,7 +203,15 @@
       "inventory_scan": "Búsqueda de discos",
       "deletion": "Borrado en copias",
       "repair": "Revisión y reparación de disco"
-    }
+    },
+    "progress": "{phase}… {detail}",
+    "reviewed": "Archivos revisados: {count}",
+    "phase": {
+      "scanning": "Revisando qué falta copiar",
+      "checking": "Comparando con el original lo que ya estaba en la copia",
+      "copying": "Copiando"
+    },
+    "checkingHint": "La primera vez se lee todo lo que ya estaba en el disco de respaldo para confirmar que es igual al original. Con carpetas grandes puede tardar horas; las copias siguientes son mucho más rápidas."
   },
   "wizard": {
     "stepOf": "Paso {step} de {total}",
@@ -442,7 +450,6 @@
     "noNext": "En pausa: no hay próxima copia.",
     "next": "Próxima copia {when} ({date}).",
     "overdue": "Hace tiempo que esta copia no termina bien. Revisa que sus discos estén conectados.",
-    "running": "Copiando… {percent}",
     "runNow": "Ejecutar ahora",
     "pause": "Pausar",
     "resume": "Reanudar",

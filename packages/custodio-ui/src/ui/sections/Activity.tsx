@@ -4,6 +4,7 @@ import type { Job } from '../api/types'
 import { Badge, EmptyState, ErrorNotice, ProgressBar } from '../components/ui'
 import { t } from '../i18n'
 import { formatBytes, formatDateTime, formatDuration, formatPercent, formatRelative } from '../i18n/format'
+import { isScanning, percentOf, reviewedOf } from '../lib/jobs'
 import { useAppState } from '../state/AppState'
 
 const TONE: Partial<Record<Job['status'], 'ok' | 'error' | 'warn' | 'muted' | 'accent'>> = {
@@ -28,8 +29,6 @@ function useJobName(): (job: Job) => string {
     return t(`jobs.kind.${job.kind}`)
   }
 }
-
-const percentOf = (job: Job): number => (job.progress.bytesTotal > 0 ? (job.progress.bytesDone / job.progress.bytesTotal) * 100 : job.status === 'succeeded' ? 100 : 0)
 
 export function Activity() {
   const { jobs, projects, refresh } = useAppState()
@@ -69,19 +68,33 @@ export function Activity() {
                 <div>
                   <div className="job__name">{name(job)}</div>
                   <div className="muted">
-                    {t('activity.files', { done: job.progress.filesDone, total: job.progress.filesTotal })}
-                    {' · '}
-                    {t('activity.bytes', { done: formatBytes(job.progress.bytesDone), total: formatBytes(job.progress.bytesTotal) })}
+                    {job.progress.phase && (
+                      <>
+                        {t(`jobs.phase.${job.progress.phase}`)}
+                        {' · '}
+                      </>
+                    )}
+                    {isScanning(job) ? (
+                      reviewedOf(job)
+                    ) : (
+                      <>
+                        {t('activity.files', { done: job.progress.filesDone, total: job.progress.filesTotal })}
+                        {' · '}
+                        {t('activity.bytes', { done: formatBytes(job.progress.bytesDone), total: formatBytes(job.progress.bytesTotal) })}
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="job__percent" data-testid="job-percent">
-                  {formatPercent(percentOf(job))}
-                </div>
+                {!isScanning(job) && (
+                  <div className="job__percent" data-testid="job-percent">
+                    {formatPercent(percentOf(job))}
+                  </div>
+                )}
                 <button type="button" className="btn btn--danger-outline" onClick={() => void cancel(job)}>
                   {t('common.cancel')}
                 </button>
               </div>
-              <ProgressBar percent={percentOf(job)} label={t('activity.progressOf', { name: name(job) })} />
+              {!isScanning(job) && <ProgressBar percent={percentOf(job)} label={t('activity.progressOf', { name: name(job) })} />}
             </div>
           ))
         )}

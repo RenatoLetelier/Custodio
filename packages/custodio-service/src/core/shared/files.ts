@@ -24,8 +24,12 @@ export const baseName = (relPath: string): string => relPath.slice(relPath.lastI
 const SKIPPED_DIRS = new Set([META_DIR, '$RECYCLE.BIN', 'System Volume Information'])
 export const isSkippedDir = (relPath: string): boolean => SKIPPED_DIRS.has(baseName(relPath))
 
-export async function sha256Of(fs: FileSystemPort, path: string): Promise<string> {
+export async function sha256Of(fs: FileSystemPort, path: string, signal?: AbortSignal, onChunk?: (bytes: number) => Promise<void>): Promise<string> {
   const hash = createHash('sha256')
-  for await (const chunk of fs.openRead(path)) hash.update(chunk)
+  for await (const chunk of fs.openRead(path)) {
+    signal?.throwIfAborted()
+    hash.update(chunk)
+    await onChunk?.(chunk.byteLength)
+  }
   return hash.digest('hex')
 }

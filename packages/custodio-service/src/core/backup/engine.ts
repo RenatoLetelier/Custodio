@@ -78,6 +78,8 @@ interface PairPlan {
 
 const DRY_RUN_VALID_MS = 24 * 60 * 60 * 1000
 const LIST_LIMIT = 200
+// A file gone, locked or denied while comparing it is left to the copy, which reports it
+const UNREADABLE = ['ENOENT', 'EBUSY', 'EPERM', 'EACCES']
 const deletionKey = (d: PlannedDeletion): string => `${d.destinationId}\u0000${d.sourceId}\u0000${d.path}`
 const pathOf = (root: string, relPath: string): string => join(root, ...relativeSegments(relPath))
 
@@ -119,7 +121,14 @@ export class BackupEngine {
     const { issues, endpoints } = await checkEndpoints(this.core, assignments as NonNullable<(typeof assignments)[number]>[])
     if (issues.length > 0) throw new BackupError('preflight_failed', issues.map((i) => i.message).join(' '), { issues })
 
-    const pairs = await this.plan(policy, endpoints, summary)
+    // Listing big folders takes a while: until the totals are known, progress counts the files reviewed
+    const progress: JobProgress = { filesDone: 0, filesTotal: 0, bytesDone: 0, bytesTotal: 0, phase: 'scanning' }
+    const report = (): void => options.onProgress?.({ ...progress })
+    report()
+    const pairs = await this.plan(policy, endpoints, summary, () => {
+      progress.filesDone++
+      report()
+    })
     for (const pair of pairs) {
       summary.plannedCopies += pair.copies.length
       summary.plannedBytes += pair.copies.reduce((sum, c) => sum + c.entry.size, 0)
@@ -135,17 +144,27 @@ export class BackupEngine {
     await this.checkSpace(pairs)
     const allowMirror = policy.mode !== 'mirror' || this.mirrorAllowed(policy, options.mirrorDryRunJobId ?? null, summary.plannedDeletions)
 
-    const progress: JobProgress = { filesDone: 0, filesTotal: summary.plannedCopies, bytesDone: 0, bytesTotal: summary.plannedBytes }
-    options.onProgress?.({ ...progress })
+    // Checking what the destination already has reads every byte of it, so it counts as work like copying
+    const checks = pairs.flatMap((p) => p.adopt)
+    Object.assign(progress, {
+      filesDone: 0,
+      filesTotal: summary.plannedCopies + checks.length,
+      bytesDone: 0,
+      bytesTotal: summary.plannedBytes + checks.reduce((sum, e) => sum + e.size, 0),
+      phase: checks.length > 0 ? 'checking' : 'copying'
+    } satisfies JobProgress)
+    report()
     const pacer = policy.maxMegabytesPerSecond ? new Pacer(clock, policy.maxMegabytesPerSecond * MEGABYTE) : null
     const stamp = stampOf(started)
 
     try {
-      for (const pair of pairs) {
-        for (const temp of pair.temps) await this.core.fs.removeFile(temp)
-        await this.adoptExisting(pair, summary, progress)
-        await this.copyPair(policy, pair, stamp, summary, progress, pacer, options)
+      for (const pair of pairs) for (const temp of pair.temps) await this.core.fs.removeFile(temp)
+      for (const pair of pairs) await this.adoptExisting(policy, pair, summary, progress, pacer, options)
+      if (progress.phase !== 'copying') {
+        progress.phase = 'copying'
+        report()
       }
+      for (const pair of pairs) await this.copyPair(policy, pair, stamp, summary, progress, pacer, options)
       for (const pair of pairs) await this.applyDeletions(policy, pair, stamp, summary, allowMirror)
       if (policy.mode !== 'append') {
         for (const base of new Set(pairs.map((p) => p.destinationBase))) await this.purge(base, policy.retentionDays)
@@ -160,7 +179,7 @@ export class BackupEngine {
     return finish()
   }
 
-  private async plan(policy: Policy, endpoints: Map<string, Endpoint>, summary: RunSummary): Promise<PairPlan[]> {
+  private async plan(policy: Policy, endpoints: Map<string, Endpoint>, summary: RunSummary, onReviewed: () => void): Promise<PairPlan[]> {
     const { fs, store, clock } = this.core
     const now = clock.now().getTime()
     const tombstones = this.deletions.tombstones(policy.projectId)
@@ -196,6 +215,7 @@ export class BackupEngine {
         }
 
         for await (const entry of fs.walk(sourceRoot, isSkippedDir, onUnreadable)) {
+          onReviewed()
           present.add(entry.relPath)
           const name = baseName(entry.relPath)
           if (isCopierTemp(name)) continue
@@ -306,29 +326,51 @@ export class BackupEngine {
     return true
   }
 
-  // A file already in the destination (an earlier copy by other means, a recovery) is kept only when its bytes match the source
-  private async adoptExisting(pair: PairPlan, summary: RunSummary, progress: JobProgress): Promise<void> {
+  // A file already in the destination (an earlier copy by other means, a recovery) is kept only when its bytes match the source.
+  // Both disks are read at once; what cannot be compared is copied again, and the copy deals with it
+  private async adoptExisting(policy: Policy, pair: PairPlan, summary: RunSummary, progress: JobProgress, pacer: Pacer | null, options: RunOptions): Promise<void> {
     const { fs, store, clock } = this.core
     for (const entry of pair.adopt) {
-      const copied = await sha256Of(fs, pathOf(pair.copyRoot, entry.relPath))
-      if (copied !== (await sha256Of(fs, pathOf(pair.sourceRoot, entry.relPath)))) {
+      options.signal.throwIfAborted()
+      if (!isWindowOpen(policy.window, policy.timezone, clock.now())) throw new WindowClosed()
+      const stop = new AbortController()
+      const signal = AbortSignal.any([options.signal, stop.signal])
+      let copied: string | null = null
+      try {
+        const [original, existing] = await Promise.all([
+          sha256Of(fs, pathOf(pair.sourceRoot, entry.relPath), signal, async (bytes) => {
+            progress.bytesDone += bytes
+            options.onProgress?.({ ...progress })
+            if (pacer) await pacer.consume(bytes, signal)
+            if (!isWindowOpen(policy.window, policy.timezone, clock.now())) throw new WindowClosed()
+          }),
+          sha256Of(fs, pathOf(pair.copyRoot, entry.relPath), signal)
+        ])
+        if (original === existing) copied = existing
+      } catch (error) {
+        stop.abort(error)
+        if (error instanceof WindowClosed || isAbortError(error) || !UNREADABLE.includes((error as NodeJS.ErrnoException).code ?? '')) throw error
+      }
+      progress.filesDone++
+      if (copied) {
+        store.manifest.upsert({
+          destinationId: pair.destination.assignment.id,
+          sourceId: pair.source.assignment.id,
+          relPath: entry.relPath,
+          size: entry.size,
+          mtimeMs: entry.mtimeMs,
+          sha256: copied,
+          copiedAt: clock.now().toISOString()
+        })
+        summary.filesUpToDate++
+      } else {
         pair.copies.push({ entry, replace: true })
         summary.plannedCopies++
         summary.plannedBytes += entry.size
         progress.filesTotal++
         progress.bytesTotal += entry.size
-        continue
       }
-      store.manifest.upsert({
-        destinationId: pair.destination.assignment.id,
-        sourceId: pair.source.assignment.id,
-        relPath: entry.relPath,
-        size: entry.size,
-        mtimeMs: entry.mtimeMs,
-        sha256: copied,
-        copiedAt: clock.now().toISOString()
-      })
-      summary.filesUpToDate++
+      options.onProgress?.({ ...progress })
     }
   }
 

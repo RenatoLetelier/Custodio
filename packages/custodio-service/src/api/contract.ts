@@ -179,7 +179,16 @@ export const PlanSchema = z
   .meta({ id: 'Plan' })
 
 const JobProgressSchema = z
-  .object({ filesDone: z.number().int(), filesTotal: z.number().int(), bytesDone: Bytes, bytesTotal: Bytes })
+  .object({
+    filesDone: z.number().int(),
+    filesTotal: z.number().int(),
+    bytesDone: Bytes,
+    bytesTotal: Bytes,
+    phase: z
+      .enum(['scanning', 'checking', 'copying'])
+      .optional()
+      .describe('Solo en copias: scanning revisa qué falta copiar (filesDone cuenta los archivos revisados), checking compara por hash lo que ya está en el destino, copying copia')
+  })
   .meta({ id: 'JobProgress' })
 
 export const JobSchema = z

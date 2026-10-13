@@ -109,7 +109,7 @@ export interface Job {
   policyId: string | null
   projectId: string | null
   dryRun: boolean
-  progress: { filesDone: number; filesTotal: number; bytesDone: number; bytesTotal: number }
+  progress: { filesDone: number; filesTotal: number; bytesDone: number; bytesTotal: number; phase?: 'scanning' | 'checking' | 'copying' }
   result: Record<string, unknown> | null
   error: { code: string; message: string } | null
   createdAt: string

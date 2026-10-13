@@ -1,6 +1,8 @@
 import { readFile, stat, utimes, writeFile, mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import type { FileSystemPort } from '../src/core/ports/system.js'
+import type { Job } from '../src/core/shared/model.js'
 import { listFiles } from './support/backup.js'
 import { createHarness, type Harness, type SimDisk } from './support/harness.js'
 
@@ -106,6 +108,70 @@ describe('proyectos completos', () => {
     expect(run.status).toBe('succeeded')
     expect(run.result).toMatchObject({ filesCopied: 1, filesUpToDate: 1 })
     expect(await readFile(damaged, 'utf8')).toBe('otro blob')
+  })
+
+  it('A9 comparar una réplica anterior muestra su avance, lee ambos discos a la vez y se puede cancelar a mitad sin perder lo ya comparado', async () => {
+    let jobId = ''
+    let cancelAt = 3
+    let destinationReads = 0
+    let reading = 0
+    let together = 0
+    h = await createHarness({
+      fs: (inner) => {
+        const fs = Object.create(inner) as FileSystemPort
+        fs.openRead = async function* (path) {
+          reading++
+          together = Math.max(together, reading)
+          try {
+            if (path.startsWith(d.uno.mountPath) && ++destinationReads === cancelAt) h.s.runner.cancel(jobId, 'tester')
+            yield* inner.openRead(path)
+          } finally {
+            reading--
+          }
+        }
+        return fs
+      }
+    })
+    const d = await disks()
+    // LocalCloud's earlier replica in E:\lc\prod: every file with its date, nothing left to copy
+    const files = ['lc/prod/blobs/aa/bb/aabb01', 'lc/prod/derived/lp/t1/master.m3u8', ...Array.from({ length: 4 }, (_, i) => `lc/prod/blobs/cc/blob${i}`)]
+    for (const rel of files.slice(2)) await h.writeFile(d.datos, rel, Buffer.alloc(600_000, rel))
+    for (const rel of files) {
+      const copy = join(d.uno.mountPath, ...rel.split('/'))
+      await mkdir(dirname(copy), { recursive: true })
+      await writeFile(copy, await readFile(h.path(d.datos, rel)))
+      const source = await stat(h.path(d.datos, rel))
+      await utimes(copy, source.atime, source.mtime)
+    }
+    const projectId = await confirmSetup({ ...setupBody({ datos: d.datos, uno: d.uno }), sources: [{ diskId: h.diskId(d.datos), folder: 'lc/prod' }] })
+    const policy = await policyOf(projectId)
+    const updates: Job[] = []
+    h.s.runner.onUpdate((job) => updates.push(job))
+
+    jobId = h.s.runner.startBackup(policy.id, { actor: 'tester' }).id
+    expect((await h.s.runner.settled(jobId)).status).toBe('cancelled')
+    expect(together).toBe(2)
+    const copyId = h.s.core.store.assignments.list().find((a) => a.diskId === h.diskId(d.uno))?.id as string
+    const compared = h.s.core.store.manifest.list(copyId).map((m) => m.relPath)
+    expect(compared).toHaveLength(2)
+    // The job is announced before it starts, without a phase
+    const phases = updates.filter((u) => u.id === jobId && u.progress.phase).map((u) => u.progress.phase)
+    expect(phases[0]).toBe('scanning')
+    expect(phases).toContain('checking')
+    expect(phases).not.toContain('copying')
+
+    cancelAt = 0
+    const resumed = await h.run(policy.id)
+    expect(resumed.status).toBe('succeeded')
+    expect(resumed.result).toMatchObject({ filesCopied: 0, filesUpToDate: files.length })
+    const seen = updates.filter((u) => u.id === resumed.id && u.progress.phase).map((u) => u.progress)
+    expect([...new Set(seen.map((p) => p.phase))]).toEqual(['scanning', 'checking', 'copying'])
+    // Only what was not compared before the cancel is read again
+    const checked = seen.filter((p) => p.phase === 'checking')
+    let pending = 0
+    for (const rel of files.filter((f) => !compared.includes(f.slice('lc/prod/'.length)))) pending += (await stat(h.path(d.datos, rel))).size
+    expect(checked[0]).toMatchObject({ filesDone: 0, filesTotal: files.length - 2, bytesDone: 0, bytesTotal: pending })
+    expect(checked.at(-1)).toMatchObject({ filesDone: files.length - 2, bytesDone: pending })
   })
 
   it('A6 una carpeta no puede cruzarse con otra de otro proyecto en el mismo disco, ni copiarse en su mismo disco', async () => {
