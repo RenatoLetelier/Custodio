@@ -4,7 +4,7 @@ import type { FileEntry } from '../ports/system.js'
 import type { Core } from '../shared/context.js'
 import { CopyError, isAbortError } from '../shared/errors.js'
 import { QUIET_WINDOW_MS, baseName, isCopierTemp, isIncompleteName, isSkippedDir, sha256Of } from '../shared/files.js'
-import { TRASH_DIR, VERSIONS_DIR, assignmentRoot, copyRoot, metaDir, parseStamp, sourceDirName, stampOf } from '../shared/layout.js'
+import { TRASH_DIR, VERSIONS_DIR, assignmentRoot, copyRoot, metaDir, parseStamp, receives, sourceDirName, stampOf } from '../shared/layout.js'
 import type { JobProgress, Policy } from '../shared/model.js'
 import { relativeSegments } from '../shared/paths.js'
 import { checkEndpoints, type Endpoint, type PreflightIssue } from './preflight.js'
@@ -143,7 +143,7 @@ export class BackupEngine {
     try {
       for (const pair of pairs) {
         for (const temp of pair.temps) await this.core.fs.removeFile(temp)
-        await this.adoptExisting(pair, summary)
+        await this.adoptExisting(pair, summary, progress)
         await this.copyPair(policy, pair, stamp, summary, progress, pacer, options)
       }
       for (const pair of pairs) await this.applyDeletions(policy, pair, stamp, summary, allowMirror)
@@ -171,8 +171,9 @@ export class BackupEngine {
       const destinationBase = assignmentRoot(destination.mountPath, destination.assignment)
       for (const sourceId of policy.sources) {
         const source = endpoints.get(sourceId) as Endpoint
+        if (!receives(destination.assignment, source.assignment)) continue
         const sourceRoot = assignmentRoot(source.mountPath, source.assignment)
-        const root = copyRoot(destinationBase, source.assignment)
+        const root = copyRoot(destinationBase, source.assignment, destination.assignment)
         const pair: PairPlan = {
           source,
           destination,
@@ -305,16 +306,26 @@ export class BackupEngine {
     return true
   }
 
-  private async adoptExisting(pair: PairPlan, summary: RunSummary): Promise<void> {
+  // A file already in the destination (an earlier copy by other means, a recovery) is kept only when its bytes match the source
+  private async adoptExisting(pair: PairPlan, summary: RunSummary, progress: JobProgress): Promise<void> {
     const { fs, store, clock } = this.core
     for (const entry of pair.adopt) {
+      const copied = await sha256Of(fs, pathOf(pair.copyRoot, entry.relPath))
+      if (copied !== (await sha256Of(fs, pathOf(pair.sourceRoot, entry.relPath)))) {
+        pair.copies.push({ entry, replace: true })
+        summary.plannedCopies++
+        summary.plannedBytes += entry.size
+        progress.filesTotal++
+        progress.bytesTotal += entry.size
+        continue
+      }
       store.manifest.upsert({
         destinationId: pair.destination.assignment.id,
         sourceId: pair.source.assignment.id,
         relPath: entry.relPath,
         size: entry.size,
         mtimeMs: entry.mtimeMs,
-        sha256: await sha256Of(fs, pathOf(pair.copyRoot, entry.relPath)),
+        sha256: copied,
         copiedAt: clock.now().toISOString()
       })
       summary.filesUpToDate++

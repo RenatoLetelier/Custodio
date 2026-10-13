@@ -3,11 +3,24 @@ import type { Core } from '../shared/context.js'
 import { DomainError, notFound } from '../shared/errors.js'
 import { baseName } from '../shared/files.js'
 import type { Assignment, Plan, PlanKind, PlanPreview, Role } from '../shared/model.js'
-import { normalizeRelative } from '../shared/paths.js'
+import { displayFolder } from '../shared/layout.js'
+import { foldersOverlap, normalizeRelative } from '../shared/paths.js'
 import { RoleSchema } from '../shared/policy.js'
 import type { DescriptorService } from './descriptor.js'
 import type { ProjectService } from './projects.js'
 import type { TopologyResult } from './topology.js'
+
+// Each folder belongs to one project: in another project's folder a copy would copy copies, and its mirror would delete them
+export function assertFree(core: Core, diskId: string, folder: string, projectId: string | null): void {
+  const clash = core.store.assignments.byDisk(diskId).find((a) => a.projectId !== projectId && foldersOverlap(a.folder, folder))
+  if (!clash) return
+  const disk = core.store.disks.get(diskId)
+  const owner = core.store.projects.get(clash.projectId)?.name ?? ''
+  throw new DomainError(
+    'conflict',
+    `${displayFolder(disk, folder)} se cruza con ${displayFolder(disk, clash.folder)}, que ya usa el proyecto "${owner}". Cada carpeta puede estar en un solo proyecto.`
+  )
+}
 
 export const AssignmentActionSchema = z.discriminatedUnion('type', [
   z.object({
@@ -126,8 +139,8 @@ export class PlanService {
         const disk = store.disks.get(action.diskId)
         if (!disk) throw notFound('el disco', action.diskId)
         const folder = normalizeRelative(action.folder)
-        const taken = [...store.assignments.byDisk(disk.id).filter((a) => a.projectId !== projectId), ...next.filter((a) => a.diskId === disk.id)]
-        if (taken.some((a) => a.folder === folder)) throw new DomainError('conflict', `La carpeta "${folder || '(raíz)'}" de ese disco ya está asignada.`)
+        if (next.some((a) => a.diskId === disk.id && a.folder === folder)) throw new DomainError('conflict', `La carpeta "${folder || '(raíz)'}" de ese disco ya está asignada.`)
+        assertFree(this.core, disk.id, folder, projectId)
         const label = this.uniqueLabel(action.label ?? (baseName(folder) || disk.model), next)
         next.push({ id: this.core.newId(), projectId, diskId: disk.id, folder, role: action.role, label, createdAt: now })
         lines.push(`Se usará la carpeta "${folder || '(raíz)'}" del disco ${disk.model} para ${ROLE_TEXT[action.role]}.`)

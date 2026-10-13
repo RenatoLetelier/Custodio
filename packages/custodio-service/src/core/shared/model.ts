@@ -59,6 +59,8 @@ export interface Assignment {
   role: Role
   label: string
   createdAt: string
+  // A backup folder that keeps the paths of this one source (D:\lc\prod copied to E:\lc\prod); null for a shared one
+  mirrorOf?: string | null
 }
 
 export type BackupMode = 'append' | 'retention' | 'mirror'
@@ -143,7 +145,7 @@ export interface ManifestEntry {
   copiedAt: string
 }
 
-export type PlanKind = 'assignments' | 'deletion' | 'repair'
+export type PlanKind = 'assignments' | 'deletion' | 'repair' | 'setup' | 'removal'
 export type PlanStatus = 'pending' | 'confirmed' | 'expired'
 
 export interface PlanPreview {

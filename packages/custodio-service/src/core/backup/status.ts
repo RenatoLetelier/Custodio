@@ -3,7 +3,7 @@ import type { FileEntry } from '../ports/system.js'
 import type { Core } from '../shared/context.js'
 import { DomainError } from '../shared/errors.js'
 import { baseName, isCopierTemp, isIncompleteName, isSkippedDir } from '../shared/files.js'
-import { assignmentRoot, copyRoot } from '../shared/layout.js'
+import { assignmentRoot, copyRoot, receives } from '../shared/layout.js'
 import type { Assignment } from '../shared/model.js'
 import { hasControlChars, isInside, relativeSegments } from '../shared/paths.js'
 
@@ -86,11 +86,16 @@ export class BackupStatusService {
   }
 
   private destinationsOf(source: Assignment): Set<string> {
+    const { store } = this.core
+    const ids = store.policies
+      .list()
+      .filter((p) => p.sources.includes(source.id))
+      .flatMap((p) => p.destinations)
     return new Set(
-      this.core.store.policies
-        .list()
-        .filter((p) => p.sources.includes(source.id))
-        .flatMap((p) => p.destinations)
+      ids.filter((id) => {
+        const destination = store.assignments.get(id)
+        return destination !== null && receives(destination, source)
+      })
     )
   }
 
@@ -100,7 +105,7 @@ export class BackupStatusService {
     const destination = store.assignments.get(id)
     if (!destination) return null
     const disk = store.disks.get(destination.diskId)
-    const base = disk?.connected && disk.mountPath ? copyRoot(assignmentRoot(disk.mountPath, destination), source) : null
+    const base = disk?.connected && disk.mountPath ? copyRoot(assignmentRoot(disk.mountPath, destination), source, destination) : null
 
     let filesBackedUp = 0
     let lastCopiedAt: string | null = null

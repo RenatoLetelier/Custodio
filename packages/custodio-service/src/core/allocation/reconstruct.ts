@@ -150,7 +150,8 @@ export class RecoveryService {
           folder: described.folder,
           role: described.role,
           label: described.label,
-          createdAt: project.createdAt
+          createdAt: project.createdAt,
+          mirrorOf: described.mirrorOf ?? null
         }
         store.assignments.insert(assignment)
       }

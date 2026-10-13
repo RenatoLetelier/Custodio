@@ -129,7 +129,7 @@ export class DeletionService {
         for (const item of order.items) {
           const source = store.assignments.get(item.sourceId)
           if (!source) continue
-          const path = resolveInside(copyRoot(root, source), item.path)
+          const path = resolveInside(copyRoot(root, source, destination), item.path)
           const info = await fs.stat(path)
           if (info?.isFile) await fs.removeFile(path)
           else if (info?.isDirectory) await fs.removeTree(path)

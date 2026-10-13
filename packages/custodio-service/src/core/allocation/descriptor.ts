@@ -20,7 +20,8 @@ const AssignmentInfoSchema = z.object({
   id: z.string(),
   folder: z.string(),
   role: RoleSchema,
-  label: z.string()
+  label: z.string(),
+  mirrorOf: z.string().nullable().optional()
 })
 
 export const DescribedAssignmentSchema = AssignmentInfoSchema.extend({ disk: DiskIdentitySchema })
@@ -108,7 +109,7 @@ export class DescriptorService {
       format: 'custodio.volume/1',
       writtenAt: this.core.clock.now().toISOString(),
       disk: identity(disks.get(assignment.diskId)),
-      assignment: { id: assignment.id, folder: assignment.folder, role: assignment.role, label: assignment.label },
+      assignment: { id: assignment.id, folder: assignment.folder, role: assignment.role, label: assignment.label, mirrorOf: assignment.mirrorOf ?? null },
       project: {
         id: project.id,
         name: project.name,
@@ -119,6 +120,7 @@ export class DescriptorService {
           folder: a.folder,
           role: a.role,
           label: a.label,
+          mirrorOf: a.mirrorOf ?? null,
           disk: identity(disks.get(a.diskId))
         })),
         policies: store.policies.byProject(projectId).map(describePolicy)

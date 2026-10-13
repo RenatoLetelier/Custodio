@@ -267,6 +267,10 @@ class SqliteProjects implements ProjectStore {
   update(p: Project): void {
     this.s.run('UPDATE projects SET name = :name, revision = :revision WHERE id = :id', { id: p.id, name: p.name, revision: p.revision })
   }
+
+  remove(id: string): void {
+    this.s.run('DELETE FROM projects WHERE id = :id', { id })
+  }
 }
 
 class SqliteAssignments implements AssignmentStore {
@@ -280,7 +284,8 @@ class SqliteAssignments implements AssignmentStore {
       folder: str(r.folder),
       role: str(r.role) as Assignment['role'],
       label: str(r.label),
-      createdAt: str(r.created_at)
+      createdAt: str(r.created_at),
+      mirrorOf: strOrNull(r.mirror_of)
     }
   }
 
@@ -302,23 +307,28 @@ class SqliteAssignments implements AssignmentStore {
   }
 
   insert(a: Assignment): void {
-    this.s.run('INSERT INTO assignments VALUES (:id, :project_id, :disk_id, :folder, :role, :label, :created_at)', {
-      id: a.id,
-      project_id: a.projectId,
-      disk_id: a.diskId,
-      folder: a.folder,
-      role: a.role,
-      label: a.label,
-      created_at: a.createdAt
-    })
+    this.s.run(
+      'INSERT INTO assignments (id, project_id, disk_id, folder, role, label, created_at, mirror_of) VALUES (:id, :project_id, :disk_id, :folder, :role, :label, :created_at, :mirror_of)',
+      {
+        id: a.id,
+        project_id: a.projectId,
+        disk_id: a.diskId,
+        folder: a.folder,
+        role: a.role,
+        label: a.label,
+        created_at: a.createdAt,
+        mirror_of: a.mirrorOf ?? null
+      }
+    )
   }
 
   update(a: Assignment): void {
-    this.s.run('UPDATE assignments SET folder = :folder, role = :role, label = :label WHERE id = :id', {
+    this.s.run('UPDATE assignments SET folder = :folder, role = :role, label = :label, mirror_of = :mirror_of WHERE id = :id', {
       id: a.id,
       folder: a.folder,
       role: a.role,
-      label: a.label
+      label: a.label,
+      mirror_of: a.mirrorOf ?? null
     })
   }
 
@@ -384,6 +394,12 @@ class SqlitePolicies implements PolicyStore {
         last_verified_at = :last_verified_at, overdue_since = :overdue_since WHERE id = :id`,
       this.params(p)
     )
+  }
+
+  // Its jobs stay in the history
+  remove(id: string): void {
+    this.s.run('DELETE FROM policy_locks WHERE policy_id = :id', { id })
+    this.s.run('DELETE FROM policies WHERE id = :id', { id })
   }
 }
 

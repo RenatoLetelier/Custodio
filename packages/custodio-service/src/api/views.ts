@@ -49,7 +49,7 @@ export const topologyView = (t: TopologyResult) => ({ valid: t.valid, errors: t.
 export function projectView(core: Core, view: ProjectView) {
   return {
     project: view.project,
-    assignments: view.assignments,
+    assignments: view.assignments.map((a) => ({ ...a, mirrorOf: a.mirrorOf ?? null })),
     policies: view.policies.map((p) => policyView(core, p)),
     topology: topologyView(view.topology)
   }

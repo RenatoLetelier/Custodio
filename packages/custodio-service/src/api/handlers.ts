@@ -69,6 +69,11 @@ export function createHandlers(deps: { services: Services; version: string; star
       const { plan, topology } = s.plans.proposeAssignments(params.projectId, body.actions, ctx.actor)
       return created({ plan, topology: topologyView(topology) })
     },
+    proposeSetup: async ({ body }, ctx) => {
+      const { plan, topology } = await s.setups.propose(body, ctx.actor)
+      return created({ plan, topology: topologyView(topology) })
+    },
+    proposeRemoval: ({ params }, ctx) => created({ plan: s.setups.proposeRemoval(params.projectId, ctx.actor) }),
     createPolicy: async ({ params, body }, ctx) => created(policyView(core, await s.policies.create(params.projectId, body, ctx.actor))),
     previewDeletion: ({ params, body }, ctx) => created(s.deletions.preview(params.projectId, body, ctx.actor)),
     listDeletions: ({ params }) => {

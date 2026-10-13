@@ -32,6 +32,7 @@ export interface ProjectStore {
   list(): Project[]
   insert(project: Project): void
   update(project: Project): void
+  remove(id: string): void
 }
 
 export interface AssignmentStore {
@@ -50,6 +51,7 @@ export interface PolicyStore {
   list(): Policy[]
   insert(policy: Policy): void
   update(policy: Policy): void
+  remove(id: string): void
 }
 
 export interface JobFilter {

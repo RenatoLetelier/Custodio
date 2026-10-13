@@ -167,6 +167,11 @@ export const migrations: Migration[] = [
         PRIMARY KEY (actor, key)
       );
     `
+  },
+  {
+    version: 2,
+    name: 'mirror_paths',
+    sql: `ALTER TABLE assignments ADD COLUMN mirror_of TEXT;`
   }
 ]
 

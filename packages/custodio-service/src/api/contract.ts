@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { DeletionRequestSchema } from '../core/allocation/deletions.js'
 import { AssignmentActionSchema } from '../core/allocation/plans.js'
+import { ProjectSetupSchema } from '../core/allocation/setup.js'
 import { EVENT_PAYLOADS, EVENT_TYPES, type EventType } from '../core/shared/events.js'
 import { BackupModeSchema, PolicyConfigSchema, PolicyPatchSchema, RoleSchema, TimeWindowSchema } from '../core/shared/policy.js'
 
@@ -78,7 +79,16 @@ export const OverviewSchema = z
 const ProjectSchema = z.object({ id: Id, name: z.string(), createdAt: Timestamp, revision: z.number().int() }).meta({ id: 'Project' })
 
 const AssignmentSchema = z
-  .object({ id: Id, projectId: Id, diskId: Id, folder: z.string(), role: RoleSchema, label: z.string(), createdAt: Timestamp })
+  .object({
+    id: Id,
+    projectId: Id,
+    diskId: Id,
+    folder: z.string(),
+    role: RoleSchema,
+    label: z.string(),
+    createdAt: Timestamp,
+    mirrorOf: Id.nullable().describe('Copia que guarda las mismas rutas que esta carpeta de origen')
+  })
   .meta({ id: 'Assignment' })
 
 export const PolicySchema = z
@@ -155,7 +165,7 @@ const PlanPreviewSchema = z
 export const PlanSchema = z
   .object({
     id: Id,
-    kind: z.enum(['assignments', 'deletion', 'repair']),
+    kind: z.enum(['assignments', 'deletion', 'repair', 'setup', 'removal']),
     projectId: z.string().nullable(),
     status: z.enum(['pending', 'confirmed', 'expired']),
     payload: z.record(z.string(), z.unknown()),
@@ -238,7 +248,7 @@ const ReconstructedProjectSchema = z
     name: z.string(),
     createdAt: z.string(),
     revision: z.number().int(),
-    assignments: z.array(z.object({ id: Id, folder: z.string(), role: RoleSchema, label: z.string(), disk: DiskIdentitySchema })),
+    assignments: z.array(z.object({ id: Id, folder: z.string(), role: RoleSchema, label: z.string(), mirrorOf: Id.nullable().optional(), disk: DiskIdentitySchema })),
     policies: z.array(PolicySchema.omit({ projectId: true, lastScheduledFor: true, lastSuccessAt: true, lastVerifiedAt: true, overdueSince: true, nextRunAt: true })),
     foundOn: z.array(z.object({ mountPath: z.string(), folder: z.string(), revision: z.number().int() }))
   })
@@ -332,6 +342,22 @@ export const ROUTES = {
     params: ProjectParams,
     body: z.object({ actions: z.array(AssignmentActionSchema).min(1) }).meta({ id: 'ProposeAssignmentsRequest' }),
     responses: { 201: { description: 'Plan pendiente de confirmación', schema: z.object({ plan: PlanSchema, topology: TopologySchema }).meta({ id: 'PlanProposal' }) } }
+  },
+  proposeSetup: {
+    method: 'POST',
+    path: '/v1/setups',
+    tag: 'Proyectos',
+    summary: 'Propone crear o cambiar un proyecto completo: carpetas, discos de respaldo (con las mismas rutas) y horario. No aplica nada hasta confirmar',
+    body: ProjectSetupSchema.meta({ id: 'ProjectSetup' }),
+    responses: { 201: { description: 'Plan pendiente de confirmación', schema: z.object({ plan: PlanSchema, topology: TopologySchema }).meta({ id: 'SetupProposal' }) } }
+  },
+  proposeRemoval: {
+    method: 'POST',
+    path: '/v1/projects/{projectId}/removals',
+    tag: 'Proyectos',
+    summary: 'Propone eliminar el proyecto. Nunca borra archivos ni copias. No aplica nada hasta confirmar',
+    params: ProjectParams,
+    responses: { 201: { description: 'Plan pendiente de confirmación', schema: z.object({ plan: PlanSchema }).meta({ id: 'RemovalProposal' }) } }
   },
   createPolicy: {
     method: 'POST',

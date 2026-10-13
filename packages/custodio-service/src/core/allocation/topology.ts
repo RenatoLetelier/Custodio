@@ -1,5 +1,6 @@
 import { foldersOverlap } from '../shared/paths.js'
 import type { Assignment, Disk } from '../shared/model.js'
+import { receives } from '../shared/layout.js'
 import { readableBytes } from '../shared/units.js'
 
 export type TopologyCode =
@@ -74,7 +75,7 @@ export function validateTopology({ assignments, policies, disks, sizes }: Topolo
         errors.push({ code: 'source_not_storage', policyId: policy.id, assignmentId: source.id, message: `"${source.label}" no guarda archivos, así que no puede ser el origen de una copia.` })
       }
       const targets = edges.get(source.id) ?? new Set<string>()
-      for (const destination of destinations) targets.add(destination.id)
+      for (const destination of destinations) if (receives(destination, source)) targets.add(destination.id)
       edges.set(source.id, targets)
     }
     for (const destination of destinations) {
@@ -83,7 +84,7 @@ export function validateTopology({ assignments, policies, disks, sizes }: Topolo
         errors.push({ code: 'destination_not_backup', policyId: policy.id, assignmentId: destination.id, message: `"${destination.label}" no está marcado para copias de seguridad.` })
       }
       for (const source of sources) {
-        if (source.diskId === destination.diskId) {
+        if (receives(destination, source) && source.diskId === destination.diskId) {
           errors.push({
             code: 'same_disk',
             policyId: policy.id,

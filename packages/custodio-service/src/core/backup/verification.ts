@@ -44,7 +44,7 @@ export class VerificationService {
         signal?.throwIfAborted()
         const source = store.assignments.get(entry.sourceId)
         if (!source) continue
-        const path = join(copyRoot(base, source), ...relativeSegments(entry.relPath))
+        const path = join(copyRoot(base, source, destination), ...relativeSegments(entry.relPath))
         const info = await fs.stat(path)
         const actual = info?.isFile ? await sha256Of(fs, path) : null
         summary.checked++

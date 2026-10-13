@@ -2,6 +2,7 @@ import { DeletionService } from './allocation/deletions.js'
 import { DescriptorService } from './allocation/descriptor.js'
 import { PlanService } from './allocation/plans.js'
 import { ProjectService } from './allocation/projects.js'
+import { ProjectSetupService } from './allocation/setup.js'
 import { RecoveryService } from './allocation/reconstruct.js'
 import { BackupEngine } from './backup/engine.js'
 import { PolicyService } from './backup/policies.js'
@@ -24,6 +25,7 @@ export function createServices(deps: CoreDeps) {
   const engine = new BackupEngine(core, deletions)
   const verifier = new VerificationService(core)
   const recovery = new RecoveryService(core)
+  const setups = new ProjectSetupService(core, projects, plans, descriptors)
   // A scan also refreshes volume.json on disks that came back and retries pending deletions
   const scan = async () => {
     const result = await inventory.scan()
@@ -35,7 +37,7 @@ export function createServices(deps: CoreDeps) {
   const repairs = new RepairService(core, plans, runner, scan)
   const scheduler = new Scheduler(core, runner, deletions)
   const backupStatus = new BackupStatusService(core)
-  return { core, inventory, projects, descriptors, plans, deletions, policies, engine, verifier, recovery, runner, repairs, scheduler, backupStatus }
+  return { core, inventory, projects, descriptors, plans, deletions, policies, engine, verifier, recovery, runner, repairs, scheduler, backupStatus, setups }
 }
 
 export type Services = ReturnType<typeof createServices>
