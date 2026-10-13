@@ -107,15 +107,53 @@ test.describe('con una réplica anterior en el disco de copia', () => {
 
     await goTo(page, es.nav.backups)
     const card = page.locator(`[data-testid=policy-card][data-policy="${policy.id}"]`)
-    const progress = card.getByTestId('policy-progress')
-    await expect(progress).toContainText(es.jobs.phase.checking)
-    await expect(progress).toHaveText(/[1-9]\d* %$/)
+    await expect(card.getByTestId('job-status')).toContainText(es.jobs.phase.checking)
+    await expect(card.getByTestId('job-percent')).toHaveText(/^[1-9]\d* %$/)
     await expect(card.getByText(es.jobs.checkingHint)).toBeVisible()
     await expect(card.getByRole('progressbar')).toBeVisible()
     await captureEvidence(page, 'U7-comparando')
-    await expect(progress).toHaveCount(0, { timeout: 15_000 })
+    await expect(card.getByTestId('job-live')).toHaveCount(0, { timeout: 15_000 })
     const [job] = (await service.api('GET', '/v1/jobs?kind=backup')).jobs
     expect(job.status).toBe('succeeded')
     expect(job.result).toMatchObject({ filesCopied: 0, filesUpToDate: 3 })
+  })
+})
+
+test.describe('con una copia larga', () => {
+  test.use({
+    scenario: {
+      disks: [
+        { name: 'principal', model: 'WD Elements 2 TB', files: { 'Videos/a.mp4': 3 * MIB, 'Videos/b.mp4': 3 * MIB, 'Videos/c.mp4': 3 * MIB }, usage: { totalBytes: 2000 * GB, freeBytes: 1500 * GB } },
+        { name: 'copia', model: 'Seagate Backup 4 TB', usage: { totalBytes: 4000 * GB, freeBytes: 3900 * GB } }
+      ]
+    }
+  })
+
+  test('U7 una copia se detiene desde su tarjeta: el botón responde al instante y el resultado dice que lo copiado queda guardado', async ({ page, service }) => {
+    const { projectId, assignments } = await service.project('Videos', [
+      { disk: 'principal', folder: 'Videos', role: 'storage', label: 'Videos' },
+      { disk: 'copia', folder: 'Copias', role: 'backup', label: 'Copia' }
+    ])
+    const policy = await service.policy(projectId, {
+      name: 'Videos de la familia',
+      sources: [assignments.find((a) => a.role === 'storage').id],
+      destinations: [assignments.find((a) => a.role === 'backup').id],
+      maxMegabytesPerSecond: 1
+    })
+    await openApp(page, service)
+    await goTo(page, es.nav.backups)
+    const card = page.locator(`[data-testid=policy-card][data-policy="${policy.id}"]`)
+    await card.getByRole('button', { name: es.backups.runNow }).click()
+    await expect(card.getByTestId('job-status')).toContainText(es.jobs.phase.copying)
+    await expect(card.getByRole('button', { name: es.backups.runNow })).toBeDisabled()
+
+    await card.getByRole('button', { name: es.jobs.stop }).click()
+    const last = card.getByTestId('last-run')
+    await expect(last).toContainText(es.jobs.status.cancelled)
+    await expect(last).toContainText(es.jobs.result.stoppedBackup)
+    await expect(card.getByRole('button', { name: es.backups.runNow })).toBeEnabled()
+    await captureEvidence(page, 'U7-detenida')
+    const [job] = (await service.api('GET', '/v1/jobs?kind=backup')).jobs
+    expect(job).toMatchObject({ status: 'cancelled', cancelRequestedAt: expect.any(String) })
   })
 })

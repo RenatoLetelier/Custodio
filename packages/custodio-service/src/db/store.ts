@@ -414,6 +414,7 @@ class SqliteJobs implements JobStore {
       trigger: str(r.trigger) as Job['trigger'],
       policyId: strOrNull(r.policy_id),
       projectId: strOrNull(r.project_id),
+      diskId: strOrNull(r.disk_id),
       scheduledFor: strOrNull(r.scheduled_for),
       dryRun: num(r.dry_run) === 1,
       progress: parse(r.progress),
@@ -435,6 +436,7 @@ class SqliteJobs implements JobStore {
       trigger: j.trigger,
       policy_id: j.policyId,
       project_id: j.projectId,
+      disk_id: j.diskId,
       scheduled_for: j.scheduledFor,
       dry_run: j.dryRun ? 1 : 0,
       progress: json(j.progress),
@@ -481,9 +483,9 @@ class SqliteJobs implements JobStore {
   insert(job: Job): void {
     this.s.run(
       `INSERT INTO jobs (id, kind, status, trigger, policy_id, project_id, scheduled_for, dry_run, progress, result, error, requested_by,
-        created_at, started_at, finished_at, cancel_requested_at)
+        created_at, started_at, finished_at, cancel_requested_at, disk_id)
        VALUES (:id, :kind, :status, :trigger, :policy_id, :project_id, :scheduled_for, :dry_run, :progress, :result, :error, :requested_by,
-        :created_at, :started_at, :finished_at, :cancel_requested_at)`,
+        :created_at, :started_at, :finished_at, :cancel_requested_at, :disk_id)`,
       this.params(job)
     )
   }

@@ -1,24 +1,22 @@
-import { useState } from 'react'
 import { api } from '../api/client'
-import type { Job, Policy, ProjectView } from '../api/types'
-import { Badge, EmptyState, ErrorNotice, ProgressBar } from '../components/ui'
+import type { Policy, ProjectView } from '../api/types'
+import { LastRun, policyJobs, useRunNow } from '../components/PolicyRun'
+import { RunningJob } from '../components/RunningJob'
+import { Badge, Button, EmptyState, ErrorNotice } from '../components/ui'
 import { t } from '../i18n'
 import { formatDateTime, formatList, formatRelative } from '../i18n/format'
 import { domId } from '../lib/dom'
 import { folderPath } from '../lib/disks'
-import { describeProgress, isScanning, percentOf } from '../lib/jobs'
 import { describeSchedule } from '../lib/schedule'
 import { useNavigate } from '../navigation'
 import { useAppState } from '../state/AppState'
 
-const JOB_TONE: Partial<Record<Job['status'], 'ok' | 'error' | 'warn' | 'muted'>> = { succeeded: 'ok', failed: 'error', interrupted: 'warn', cancelled: 'muted', skipped: 'muted' }
-
-// One scheduled copy: when it runs, how the last one went, and the buttons to run or pause it.
+// One scheduled copy: when it runs, how the last one went, and the buttons to run, stop or pause it.
 // What it copies and how is set in its project
 function PolicyCard({ policy, project }: { policy: Policy; project: ProjectView }) {
   const { jobs, disks, refresh } = useAppState()
   const navigate = useNavigate()
-  const [error, setError] = useState<unknown>(null)
+  const { pending, error, run, runNow } = useRunNow()
   const paths = (ids: string[]) =>
     formatList(
       ids.map((id) => {
@@ -26,20 +24,14 @@ function PolicyCard({ policy, project }: { policy: Policy; project: ProjectView 
         return assignment ? folderPath(disks.find((d) => d.id === assignment.diskId), assignment.folder) : ''
       })
     )
-  const policyJobs = jobs.filter((j) => j.policyId === policy.id && j.kind === 'backup' && !j.dryRun)
-  const running = policyJobs.find((j) => j.status === 'running')
-  const last = policyJobs.find((j) => j.status !== 'running' && j.finishedAt)
+  const { running, last } = policyJobs(jobs, policy.id)
   const titleId = domId('policy', policy.id)
 
-  const call = async (fn: () => Promise<unknown>): Promise<void> => {
-    setError(null)
-    try {
-      await fn()
+  const togglePause = () =>
+    run('pause', async () => {
+      await api('PATCH', `/v1/policies/${policy.id}`, { paused: !policy.paused })
       await refresh()
-    } catch (e) {
-      setError(e)
-    }
-  }
+    })
 
   return (
     <article className="card policy" data-testid="policy-card" data-policy={policy.id} aria-labelledby={titleId}>
@@ -62,31 +54,20 @@ function PolicyCard({ policy, project }: { policy: Policy; project: ProjectView 
           {t('backups.retentionNote', { days: policy.retentionDays })}
         </p>
       )}
-      {last && (
-        <p className="policy__last">
-          <Badge tone={JOB_TONE[last.status] ?? 'muted'}>{t(`jobs.status.${last.status}`)}</Badge>
-          <span className="muted">{formatRelative(last.finishedAt as string)}</span>
-        </p>
-      )}
+      {!running && last && <LastRun job={last} />}
       {policy.overdueSince && <p className="alert alert--warn-inline">{t('backups.overdue')}</p>}
-      {running && !isScanning(running) && <ProgressBar percent={percentOf(running)} label={t('activity.progressOf', { name: project.project.name })} />}
-      {running && (
-        <p className="muted" data-testid="policy-progress">
-          {describeProgress(running)}
-        </p>
-      )}
-      {running?.progress.phase === 'checking' && <p className="muted">{t('jobs.checkingHint')}</p>}
+      {running && <RunningJob job={running} name={project.project.name} />}
       {error !== null && <ErrorNotice error={error} />}
       <div className="actions">
-        <button type="button" className="btn btn--primary" disabled={!!running} onClick={() => void call(() => api('POST', `/v1/policies/${policy.id}/runs`, {}))}>
+        <Button variant="primary" disabled={!!running} pending={pending === 'run'} pendingLabel={t('backups.starting')} onClick={() => void runNow(policy.id)}>
           {t('backups.runNow')}
-        </button>
-        <button type="button" className="btn" onClick={() => void call(() => api('PATCH', `/v1/policies/${policy.id}`, { paused: !policy.paused }))}>
+        </Button>
+        <Button pending={pending === 'pause'} pendingLabel={t(policy.paused ? 'backups.resuming' : 'backups.pausing')} onClick={() => void togglePause()}>
           {t(policy.paused ? 'backups.resume' : 'backups.pause')}
-        </button>
-        <button type="button" className="btn btn--link" onClick={() => navigate('projects', { kind: 'editProject', projectId: project.project.id })}>
+        </Button>
+        <Button variant="link" onClick={() => navigate('projects', { kind: 'editProject', projectId: project.project.id })}>
           {t('backups.change')}
-        </button>
+        </Button>
       </div>
     </article>
   )

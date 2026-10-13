@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { api } from '../api/client'
 import type { Disk, Plan, ProjectView } from '../api/types'
 import { DeletedFields, deletedBody, deletedFrom, deletedValid, type DeletedSettings } from '../components/DeletedFields'
-import { Disclosure, ErrorNotice, Modal, PreviewDialog, type PreviewProps } from '../components/ui'
+import { Button, Disclosure, ErrorNotice, Modal, PreviewDialog, type PreviewProps } from '../components/ui'
 import { t, type MessageKey } from '../i18n'
 import { cn, domId } from '../lib/dom'
 import { diskName, folderPath } from '../lib/disks'
@@ -39,8 +39,11 @@ function DeleteFromCopiesDialog({ project, onClose, onPreview }: { project: Proj
   const [sourceId, setSourceId] = useState(sources[0]?.id ?? '')
   const [path, setPath] = useState('')
   const [error, setError] = useState<unknown>(null)
+  const [busy, setBusy] = useState(false)
 
   const review = async (): Promise<void> => {
+    if (busy) return
+    setBusy(true)
     setError(null)
     try {
       const plan = await api<Plan>('POST', `/v1/projects/${project.project.id}/deletions`, { items: [{ sourceId, path }] })
@@ -59,21 +62,22 @@ function DeleteFromCopiesDialog({ project, onClose, onPreview }: { project: Proj
       })
     } catch (e) {
       setError(e)
+      setBusy(false)
     }
   }
 
   return (
     <Modal
       title={t('projects.delete.title')}
-      onClose={onClose}
+      onClose={() => !busy && onClose()}
       footer={
         <>
-          <button type="button" className="btn" onClick={onClose}>
+          <Button onClick={onClose} disabled={busy}>
             {t('common.cancel')}
-          </button>
-          <button type="button" className="btn btn--primary" disabled={!sourceId || path.trim() === ''} onClick={() => void review()}>
+          </Button>
+          <Button variant="primary" disabled={!sourceId || path.trim() === ''} pending={busy} pendingLabel={t('common.preparing')} onClick={() => void review()}>
             {t('projects.delete.review')}
-          </button>
+          </Button>
         </>
       }
     >
@@ -123,6 +127,7 @@ export function ProjectEditor({ project, diskId, onDone }: { project: ProjectVie
   const [pending, setPending] = useState<Pending | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [pickError, setPickError] = useState(false)
 
@@ -193,7 +198,8 @@ export function ProjectEditor({ project, diskId, onDone }: { project: ProjectVie
   }
 
   const remove = async (): Promise<void> => {
-    if (!project) return
+    if (!project || removing) return
+    setRemoving(true)
     setError(null)
     try {
       const { plan } = await api<{ plan: Plan }>('POST', `/v1/projects/${project.project.id}/removals`)
@@ -213,6 +219,7 @@ export function ProjectEditor({ project, diskId, onDone }: { project: ProjectVie
     } catch (e) {
       setError(e)
     }
+    setRemoving(false)
   }
 
   const diskOptions = (selected: string) =>
@@ -372,12 +379,12 @@ export function ProjectEditor({ project, diskId, onDone }: { project: ProjectVie
           </p>
         )}
         <div className="actions">
-          <button type="button" className="btn" onClick={onDone} disabled={busy}>
+          <Button onClick={onDone} disabled={busy}>
             {t('common.cancel')}
-          </button>
-          <button type="submit" className="btn btn--primary" disabled={!valid} aria-busy={busy}>
-            {busy ? t('projects.editor.checking') : t('projects.editor.review')}
-          </button>
+          </Button>
+          <Button variant="primary" submit disabled={!valid} pending={busy} pendingLabel={t('projects.editor.checking')}>
+            {t('projects.editor.review')}
+          </Button>
         </div>
       </form>
 
@@ -388,12 +395,12 @@ export function ProjectEditor({ project, diskId, onDone }: { project: ProjectVie
           </h2>
           <p className="muted">{t('projects.editor.dangerHint')}</p>
           <div className="actions">
-            <button type="button" className="btn btn--danger-outline" onClick={() => setDeleting(true)} disabled={!project.assignments.some((a) => a.role === 'storage')}>
+            <Button variant="danger-outline" onClick={() => setDeleting(true)} disabled={!project.assignments.some((a) => a.role === 'storage')}>
               {t('projects.delete.button')}
-            </button>
-            <button type="button" className="btn btn--danger-outline" onClick={() => void remove()}>
+            </Button>
+            <Button variant="danger-outline" pending={removing} pendingLabel={t('common.preparing')} onClick={() => void remove()}>
               {t('projects.remove.button')}
-            </button>
+            </Button>
           </div>
         </section>
       )}

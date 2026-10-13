@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api/client'
-import type { Job, ProjectView } from '../api/types'
-import { Badge, EmptyState, ErrorNotice, Icon } from '../components/ui'
+import type { ProjectView } from '../api/types'
+import { LastRun, policyJobs, useRunNow } from '../components/PolicyRun'
+import { RunningJob } from '../components/RunningJob'
+import { Badge, Button, EmptyState, ErrorNotice, Icon } from '../components/ui'
 import { t, type MessageKey } from '../i18n'
-import { formatDateTime, formatRelative } from '../i18n/format'
+import { formatDateTime } from '../i18n/format'
 import { domId } from '../lib/dom'
 import { folderPath } from '../lib/disks'
 import { describeSchedule } from '../lib/schedule'
@@ -13,30 +14,15 @@ import { ProjectEditor } from './ProjectEditor'
 
 type View = { kind: 'list' } | { kind: 'new'; diskId?: string } | { kind: 'edit'; projectId: string }
 
-const JOB_TONE: Partial<Record<Job['status'], 'ok' | 'error' | 'warn' | 'muted'>> = { succeeded: 'ok', failed: 'error', interrupted: 'warn', cancelled: 'muted', skipped: 'muted' }
-
 function ProjectCard({ view, onEdit }: { view: ProjectView; onEdit: () => void }) {
-  const { disks, jobs, refresh } = useAppState()
-  const [error, setError] = useState<unknown>(null)
+  const { disks, jobs } = useAppState()
+  const { pending, error, runNow } = useRunNow()
   const policy = view.policies[0]
   const disk = (id: string) => disks.find((d) => d.id === id)
   const sources = view.assignments.filter((a) => a.role === 'storage')
   const copies = view.assignments.filter((a) => a.role === 'backup')
-  const policyJobs = policy ? jobs.filter((j) => j.policyId === policy.id && j.kind === 'backup' && !j.dryRun) : []
-  const running = policyJobs.find((j) => j.status === 'running')
-  const last = policyJobs.find((j) => j.status !== 'running' && j.finishedAt)
+  const { running, last } = policy ? policyJobs(jobs, policy.id) : { running: undefined, last: undefined }
   const titleId = domId('project', view.project.id)
-
-  const runNow = async (): Promise<void> => {
-    if (!policy) return
-    setError(null)
-    try {
-      await api('POST', `/v1/policies/${policy.id}/runs`, {})
-      await refresh()
-    } catch (e) {
-      setError(e)
-    }
-  }
 
   return (
     <article className="card project-card" data-testid="project-card" data-project={view.project.id} aria-labelledby={titleId}>
@@ -47,9 +33,6 @@ function ProjectCard({ view, onEdit }: { view: ProjectView; onEdit: () => void }
         <div className="chips">
           {policy?.paused && <Badge tone="muted">{t('backups.paused')}</Badge>}
           {running && <Badge tone="accent">{t('jobs.status.running')}</Badge>}
-          {!running && last && (
-            <Badge tone={JOB_TONE[last.status] ?? 'muted'}>{t('projects.card.last', { status: t(`jobs.status.${last.status}`), when: formatRelative(last.finishedAt as string) })}</Badge>
-          )}
           {!running && !last && policy && <Badge tone="muted">{t('projects.card.never')}</Badge>}
         </div>
       </header>
@@ -101,17 +84,19 @@ function ProjectCard({ view, onEdit }: { view: ProjectView; onEdit: () => void }
             {t(`projects.warning.${w.code}` as MessageKey, { folder: view.assignments.find((a) => a.id === w.assignmentId)?.label ?? '' })}
           </p>
         ))}
+      {running && <RunningJob job={running} name={view.project.name} />}
+      {!running && last && <LastRun job={last} />}
       {error !== null && <ErrorNotice error={error} />}
       <div className="actions">
         {policy && (
-          <button type="button" className="btn btn--primary" disabled={!!running} onClick={() => void runNow()}>
+          <Button variant="primary" disabled={!!running} pending={pending === 'run'} pendingLabel={t('backups.starting')} onClick={() => void runNow(policy.id)}>
             {t('backups.runNow')}
-          </button>
+          </Button>
         )}
-        <button type="button" className="btn" onClick={onEdit}>
+        <Button onClick={onEdit}>
           <Icon name="edit" size={16} />
           {t('projects.card.edit')}
-        </button>
+        </Button>
       </div>
     </article>
   )

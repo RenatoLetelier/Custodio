@@ -128,6 +128,8 @@ export interface Job {
   trigger: JobTrigger
   policyId: string | null
   projectId: string | null
+  // The disk a repair works on
+  diskId: string | null
   scheduledFor: string | null
   dryRun: boolean
   progress: JobProgress

@@ -60,6 +60,8 @@ test('U6 reparar un disco muestra antes qué pasará y exige confirmación', asy
   await expect(dialog(page)).toHaveCount(0)
   await expect.poll(async () => (await service.api('GET', '/v1/jobs?kind=repair')).jobs.map((j: any) => j.status)).toEqual(['succeeded'])
   expect((await service.api('GET', '/v1/audit')).entries.map((e: any) => e.action)).toContain('disk.repair_requested')
+  // The card itself tells how the repair went, without opening Actividad
+  await expect(card.getByTestId('last-run')).toContainText(es.jobs.result.repaired)
 })
 
 test('U6 activar el modo espejo muestra antes qué pasará y exige confirmación explícita', async ({ page, service }) => {

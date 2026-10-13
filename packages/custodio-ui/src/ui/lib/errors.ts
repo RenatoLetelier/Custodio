@@ -1,5 +1,15 @@
 import { ApiError } from '../api/client'
+import type { Job } from '../api/types'
 import { hasMessage, t, type MessageKey } from '../i18n'
+import { resultOf } from './jobs'
+
+// A job that ended badly while someone waited for it (a disk search, a repair)
+export class JobFailed extends Error {
+  constructor(readonly job: Job) {
+    super(job.error?.message ?? job.status)
+    this.name = 'JobFailed'
+  }
+}
 
 export interface FriendlyError {
   title: string
@@ -17,6 +27,7 @@ function violations(details: unknown): string[] {
 
 // What happened and what to do, never a raw code
 export function friendlyError(error: unknown): FriendlyError {
+  if (error instanceof JobFailed) return { title: t('errors.job_failed.title'), hint: t('errors.job_failed.hint'), detail: resultOf(error.job) }
   const code = error instanceof ApiError ? error.code : 'unknown'
   const known = hasMessage(`errors.${code}.title`) ? code : error instanceof ApiError && error.status >= 500 ? 'internal' : 'unknown'
   const reasons = error instanceof ApiError ? violations(error.details) : []

@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { api, serviceBridge } from '../api/client'
 import type { ReconstructedProject } from '../api/types'
-import { Disclosure, EmptyState, ErrorNotice, Semaphore } from '../components/ui'
+import { Button, Disclosure, EmptyState, ErrorNotice, Semaphore } from '../components/ui'
 import { t, type MessageKey } from '../i18n'
 import { formatDateTime, formatFolder, formatList } from '../i18n/format'
+import { useAction } from '../lib/useAction'
+import { useDiskScan } from '../lib/useDiskScan'
 import { useAppState } from '../state/AppState'
 
 // A settings page: each section answers one question, each row is a name on the left and its value or control on the right
@@ -35,48 +37,32 @@ export function Settings() {
   const { connection, refresh } = useAppState()
   const [health, setHealth] = useState<{ version: string; startedAt: string } | null>(null)
   const [found, setFound] = useState<ReconstructedProject[] | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [scanned, setScanned] = useState(false)
-  const [error, setError] = useState<unknown>(null)
+  const [recovered, setRecovered] = useState<string | null>(null)
+  const { pending, error, run } = useAction()
+  const diskScan = useDiskScan()
   const bridge = window.custodio
 
   useEffect(() => {
     api<{ version: string; startedAt: string }>('GET', '/v1/health').then(setHealth, () => setHealth(null))
   }, [])
 
-  const run = async (fn: () => Promise<void>): Promise<void> => {
-    setBusy(true)
-    setError(null)
-    try {
-      await fn()
-    } catch (e) {
-      setError(e)
-    }
-    setBusy(false)
-  }
-
   const search = () =>
-    run(async () => {
+    run('search', async () => {
+      setRecovered(null)
       setFound((await api<{ projects: ReconstructedProject[] }>('POST', '/v1/recovery/scan')).projects)
     })
 
-  const scan = () =>
-    run(async () => {
-      await api('POST', '/v1/disks/scan')
-      setScanned(true)
-      await refresh()
-    })
-
-  const recover = (projectId: string) =>
-    run(async () => {
-      await api('POST', '/v1/recovery/import', { projectId })
-      setFound((current) => current?.filter((p) => p.id !== projectId) ?? null)
+  const recover = (project: ReconstructedProject) =>
+    run(project.id, async () => {
+      await api('POST', '/v1/recovery/import', { projectId: project.id })
+      setFound((current) => current?.filter((p) => p.id !== project.id) ?? null)
+      setRecovered(project.name)
       await refresh()
     })
 
   return (
     <div className="stack settings">
-      {error !== null && <ErrorNotice error={error} />}
+      {(error ?? diskScan.error) !== null && <ErrorNotice error={error ?? diskScan.error} />}
 
       <Section id="settings-service" heading="settings.service.title" intro="settings.service.intro">
         <Row label="settings.service.state">
@@ -95,10 +81,14 @@ export function Settings() {
 
       <Section id="settings-disks" heading="settings.disks.title">
         <Row label="settings.disks.check" hint="settings.disks.checkHint">
-          <button type="button" className="btn btn--sm" onClick={() => void scan()} disabled={busy}>
+          {diskScan.done && (
+            <span className="muted" role="status">
+              {t('settings.disks.checked')}
+            </span>
+          )}
+          <Button size="sm" pending={diskScan.scanning} pendingLabel={t('jobs.working', { doing: t('jobs.doing.inventory_scan') })} onClick={() => void diskScan.scan()}>
             {t('settings.disks.checkNow')}
-          </button>
-          {scanned && <span className="muted">{t('settings.disks.checked')}</span>}
+          </Button>
         </Row>
       </Section>
 
@@ -110,9 +100,14 @@ export function Settings() {
 
       <Section id="settings-recovery" heading="settings.recovery.title" intro="settings.recovery.body">
         <div className="actions">
-          <button type="button" className="btn" onClick={() => void search()} disabled={busy}>
+          <Button pending={pending === 'search'} pendingLabel={t('common.searching')} disabled={pending !== null && pending !== 'search'} onClick={() => void search()}>
             {t('settings.recovery.search')}
-          </button>
+          </Button>
+          {recovered && (
+            <span className="muted" role="status">
+              {t('settings.recovery.recovered', { name: recovered })}
+            </span>
+          )}
         </div>
         {found !== null &&
           (found.length === 0 ? (
@@ -125,9 +120,16 @@ export function Settings() {
                     <span className="file-list__name">{project.name}</span>
                     <span className="muted">{formatList(project.assignments.map((a) => a.disk.model))}</span>
                   </div>
-                  <button type="button" className="btn btn--sm btn--primary" onClick={() => void recover(project.id)}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    pending={pending === project.id}
+                    pendingLabel={t('common.applying')}
+                    disabled={pending !== null && pending !== project.id}
+                    onClick={() => void recover(project)}
+                  >
                     {t('settings.recovery.recover')}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -146,9 +148,9 @@ export function Settings() {
               <Row label="settings.data.logs">
                 <span className="mono">{formatFolder(bridge.dataDir, 'logs')}</span>
                 {bridge.openLogs && (
-                  <button type="button" className="btn btn--sm" onClick={() => void bridge.openLogs?.()}>
+                  <Button size="sm" onClick={() => void bridge.openLogs?.()}>
                     {t('settings.data.openLogs')}
-                  </button>
+                  </Button>
                 )}
               </Row>
             )}

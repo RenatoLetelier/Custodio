@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react'
 import { cn, domId } from '../lib/dom'
 import { api } from '../api/client'
 import type { Disk, Plan, ProjectView, Role } from '../api/types'
-import { EmptyState, ErrorNotice, Semaphore } from '../components/ui'
+import { Button, EmptyState, ErrorNotice, Semaphore } from '../components/ui'
 import { t, type MessageKey } from '../i18n'
 import { formatBytes, formatList } from '../i18n/format'
 import { diskName } from '../lib/disks'
+import { useDiskScan } from '../lib/useDiskScan'
 import { DEFAULT_SCHEDULE, systemTimeZone, toCron } from '../lib/schedule'
 import { useAppState } from '../state/AppState'
 
@@ -37,6 +38,7 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
   const [choices, setChoices] = useState<Record<string, Choice>>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
+  const diskScan = useDiskScan()
 
   const choiceOf = (disk: Disk): Choice => choices[disk.id] ?? left?.assignments.find((a) => a.diskId === disk.id)?.role ?? presetChoices(preset, usable)[disk.id] ?? 'none'
   const withRole = (role: Choice) => usable.filter((d) => choiceOf(d) === role)
@@ -47,17 +49,6 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
   const choosePreset = (next: Preset): void => {
     setPreset(next)
     setChoices(presetChoices(next, usable))
-  }
-
-  const scan = async (): Promise<void> => {
-    setError(null)
-    try {
-      await api('POST', '/v1/disks/scan')
-      await new Promise((resolve) => setTimeout(resolve, 400))
-      await refresh()
-    } catch (e) {
-      setError(e)
-    }
   }
 
   const confirm = async (): Promise<void> => {
@@ -148,9 +139,9 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
                 title={t('wizard.noDisks.title')}
                 body={t('wizard.noDisks.body')}
                 action={
-                  <button type="button" className="btn btn--primary" onClick={() => void scan()}>
+                  <Button variant="primary" pending={diskScan.scanning} pendingLabel={t('jobs.working', { doing: t('jobs.doing.inventory_scan') })} onClick={() => void diskScan.scan()}>
                     {t('disks.scan')}
-                  </button>
+                  </Button>
                 }
               />
             ) : (
@@ -215,13 +206,13 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
               <button type="button" className="btn" onClick={() => setStep('disks')} disabled={busy}>
                 {t('common.back')}
               </button>
-              <button type="button" className="btn btn--primary" onClick={() => void confirm()} disabled={busy}>
+              <Button variant="primary" pending={busy} pendingLabel={t('common.applying')} onClick={() => void confirm()}>
                 {t('wizard.summary.confirm')}
-              </button>
+              </Button>
             </div>
           </>
         )}
-        {step !== 'summary' && error !== null && <ErrorNotice error={error} />}
+        {step !== 'summary' && (error ?? diskScan.error) !== null && <ErrorNotice error={error ?? diskScan.error} />}
       </div>
     </div>
   )

@@ -49,7 +49,7 @@ export class RepairService {
     if (!disk?.connected || !disk.mountPath) throw new DomainError('unprocessable', 'El disco ya no está conectado.')
     const mountPath = disk.mountPath
     this.core.audit.record({ actor, action: 'disk.repair_requested', target: diskId, details: { planId: plan.id, model: disk.model } })
-    const job = this.runner.startTask('repair', { actor }, async (signal) => {
+    const job = this.runner.startTask('repair', { actor, diskId }, async (signal) => {
       const outcome = await this.core.repairer.repair(mountPath, confirmation, signal)
       await this.rescan()
       return { diskId, ...outcome }

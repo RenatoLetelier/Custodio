@@ -66,7 +66,10 @@
     "seconds": "{count} s",
     "minutes": "{count} min",
     "hours": "{count} h",
-    "measuring": "Comprobando que todo cabe en los discos de respaldo. Si las carpetas son muy grandes, puede tardar unos minutos."
+    "measuring": "Comprobando que todo cabe en los discos de respaldo. Si las carpetas son muy grandes, puede tardar unos minutos.",
+    "applying": "Aplicando…",
+    "preparing": "Preparando…",
+    "searching": "Buscando…"
   },
   "units": {
     "bytes": "{value} {unit}",
@@ -141,6 +144,10 @@
     "unknown": {
       "title": "Algo salió mal",
       "hint": "Vuelve a intentarlo en un momento."
+    },
+    "job_failed": {
+      "title": "No se pudo terminar",
+      "hint": "Revisa que los discos estén conectados y vuelve a intentarlo."
     }
   },
   "overview": {
@@ -185,6 +192,10 @@
       "title": "Todavía no configuraste Custodio",
       "body": "El asistente te ayuda a elegir dónde se guardan tus archivos y dónde sus copias.",
       "action": "Abrir el asistente"
+    },
+    "now": {
+      "title": "Ahora",
+      "see": "Ver en Actividad"
     }
   },
   "jobs": {
@@ -193,8 +204,8 @@
       "running": "En curso",
       "succeeded": "Terminó bien",
       "failed": "Falló",
-      "cancelled": "Cancelado",
-      "interrupted": "En pausa",
+      "cancelled": "Se detuvo",
+      "interrupted": "Se interrumpió",
       "skipped": "Se omitió"
     },
     "kind": {
@@ -204,14 +215,38 @@
       "deletion": "Borrado en copias",
       "repair": "Revisión y reparación de disco"
     },
-    "progress": "{phase}… {detail}",
+    "progress": "{doing}… {detail}",
+    "working": "{doing}…",
     "reviewed": "Archivos revisados: {count}",
+    "preparing": "Preparando la copia",
+    "stopping": "Deteniendo",
     "phase": {
       "scanning": "Revisando qué falta copiar",
       "checking": "Comparando con el original lo que ya estaba en la copia",
-      "copying": "Copiando"
+      "copying": "Copiando",
+      "verifying": "Revisando que las copias estén bien"
     },
-    "checkingHint": "La primera vez se lee todo lo que ya estaba en el disco de respaldo para confirmar que es igual al original. Con carpetas grandes puede tardar horas; las copias siguientes son mucho más rápidas."
+    "doing": {
+      "repair": "Revisando y reparando el disco",
+      "inventory_scan": "Buscando discos",
+      "deletion": "Borrando de las copias"
+    },
+    "started": "Empezó {when}",
+    "stop": "Detener",
+    "checkingHint": "La primera vez se lee todo lo que ya estaba en el disco de respaldo para confirmar que es igual al original. Con carpetas grandes puede tardar horas; las copias siguientes son mucho más rápidas.",
+    "stoppingHint": "Termina el archivo en curso y se detiene. Lo ya copiado queda guardado.",
+    "repairHint": "Puede tardar bastante. Mientras tanto no se harán copias en este disco.",
+    "result": {
+      "copied": "Archivos copiados: {files} ({bytes}). Ya estaban al día: {upToDate}.",
+      "nothingNew": "No había nada nuevo que copiar. Archivos al día: {upToDate}.",
+      "simulated": "Simulación: se copiarían {files} archivos y se quitarían {deletions} de la copia.",
+      "verified": "Copias revisadas: {count}. Todas están bien.",
+      "repaired": "Revisión terminada: el disco quedó en orden.",
+      "repairIncomplete": "La revisión terminó, pero no pudo corregir todo. Conviene tener una copia al día de este disco.",
+      "stoppedBackup": "Se detuvo a pedido. Lo ya copiado queda guardado y la próxima copia sigue desde ahí.",
+      "stopped": "Se detuvo a pedido.",
+      "unexpected": "Algo salió mal. El detalle quedó en el registro de Custodio (Configuración, Avanzado)."
+    }
   },
   "wizard": {
     "stepOf": "Paso {step} de {total}",
@@ -338,7 +373,8 @@
       "checkCable": "Revisa el cable o el adaptador USB."
     },
     "offlineFolder": "{disk}: {folder}",
-    "wholeDisk": "todo el disco"
+    "wholeDisk": "todo el disco",
+    "scanDone": "Listo: la lista de discos está al día."
   },
   "projects": {
     "delete": {
@@ -370,7 +406,6 @@
       "when": "Cuándo",
       "noSchedule": "Sin copia programada",
       "next": "Próxima: {when}",
-      "last": "Última copia: {status}, {when}",
       "never": "Todavía no se ha copiado",
       "edit": "Editar"
     },
@@ -473,13 +508,17 @@
       "toProjects": "Ir a Proyectos"
     },
     "intro": "Qué carpetas se copian y en qué discos se elige en cada proyecto, con «Cambiar qué y dónde se copia».",
-    "change": "Cambiar qué y dónde se copia"
+    "change": "Cambiar qué y dónde se copia",
+    "starting": "Iniciando…",
+    "pausing": "Pausando…",
+    "resuming": "Reanudando…"
   },
   "activity": {
     "name": {
       "backup": "Copia «{name}»",
       "dryRun": "Simulación de «{name}»",
-      "verification": "Revisión de «{name}»"
+      "verification": "Revisión de «{name}»",
+      "repair": "Revisión del disco {disk}"
     },
     "running": "En curso",
     "queue": "En cola",
@@ -544,7 +583,8 @@
       "search": "Buscar proyectos en los discos",
       "none": "No encontramos proyectos para recuperar",
       "noneHint": "Conecta los discos que usabas con Custodio y vuelve a buscar.",
-      "recover": "Recuperar"
+      "recover": "Recuperar",
+      "recovered": "Se recuperó «{name}»."
     },
     "service": {
       "title": "Servicio de Custodio",
@@ -558,7 +598,7 @@
       "check": "Revisión automática",
       "checkHint": "La salud y el espacio de cada disco, cada 6 horas y al iniciar Windows.",
       "checkNow": "Revisar ahora",
-      "checked": "Revisión pedida."
+      "checked": "Listo: los discos están revisados."
     },
     "app": {
       "title": "Aplicación",

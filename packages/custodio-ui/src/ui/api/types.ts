@@ -108,13 +108,15 @@ export interface Job {
   trigger: 'manual' | 'schedule' | 'catch_up'
   policyId: string | null
   projectId: string | null
+  diskId: string | null
   dryRun: boolean
-  progress: { filesDone: number; filesTotal: number; bytesDone: number; bytesTotal: number; phase?: 'scanning' | 'checking' | 'copying' }
+  progress: { filesDone: number; filesTotal: number; bytesDone: number; bytesTotal: number; phase?: 'scanning' | 'checking' | 'copying' | 'verifying' }
   result: Record<string, unknown> | null
   error: { code: string; message: string } | null
   createdAt: string
   startedAt: string | null
   finishedAt: string | null
+  cancelRequestedAt: string | null
 }
 
 export interface ReconstructedProject {

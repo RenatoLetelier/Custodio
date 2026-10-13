@@ -1,11 +1,16 @@
 import { useState, type ReactNode } from 'react'
 import { domId } from '../lib/dom'
 import { api } from '../api/client'
-import type { Disk, Plan } from '../api/types'
-import { Badge, Disclosure, EmptyState, ErrorNotice, PreviewDialog, ProgressBar, Semaphore, type PreviewProps } from '../components/ui'
+import type { Disk, Job, Plan } from '../api/types'
+import { LastRun } from '../components/PolicyRun'
+import { RunningJob } from '../components/RunningJob'
+import { Badge, Button, Disclosure, EmptyState, ErrorNotice, PreviewDialog, ProgressBar, Semaphore, type PreviewProps } from '../components/ui'
 import { t, type MessageKey } from '../i18n'
 import { formatBytes, formatNumber, formatPercent } from '../i18n/format'
 import { diskName, diskStatus, folderPath, suggestedAction } from '../lib/disks'
+import { isActive } from '../lib/jobs'
+import { useAction } from '../lib/useAction'
+import { useDiskScan } from '../lib/useDiskScan'
 import { useNavigate } from '../navigation'
 import { useAppState } from '../state/AppState'
 
@@ -56,10 +61,13 @@ function TechnicalDetails({ disk }: { disk: Disk }) {
 }
 
 function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pending) => void }) {
-  const { refresh, projects } = useAppState()
+  const { refresh, projects, jobs, track } = useAppState()
   const navigate = useNavigate()
-  const [error, setError] = useState<unknown>(null)
+  const { pending, error, run } = useAction<'repair' | 'retire'>()
   const [editing, setEditing] = useState(false)
+  const repairs = jobs.filter((j) => j.kind === 'repair' && j.diskId === disk.id)
+  const repairing = repairs.find(isActive)
+  const lastRepair = repairs.find((j) => !isActive(j) && j.finishedAt)
   // A project with a scheduled copy changes its folders in its own form, not by pulling the disk from under it
   const [inUse, setInUse] = useState<string | null>(null)
   const uses = disk.assignments.map((a) => ({ ...a, project: projects.find((p) => p.project.id === a.projectId) }))
@@ -67,9 +75,8 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
   const action = suggestedAction(disk)
   const usedPercent = disk.capacity ? (disk.capacity.usedBytes / Math.max(1, disk.capacity.totalBytes)) * 100 : 0
 
-  const repair = async (): Promise<void> => {
-    setError(null)
-    try {
+  const repair = () =>
+    run('repair', async () => {
       const plan = await api<Plan>('POST', `/v1/disks/${disk.id}/repairs`)
       onPreview({
         title: t('disks.repair.title', { disk: diskName(disk) }),
@@ -77,23 +84,19 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
         lines: plan.preview.lines,
         confirmLabel: t('disks.repair.confirm'),
         onConfirm: async () => {
-          await api('POST', `/v1/plans/${plan.id}/confirm`, { confirm: true })
-          await refresh()
+          const confirmed = await api<{ result: { job: Job } }>('POST', `/v1/plans/${plan.id}/confirm`, { confirm: true })
+          track(confirmed.result.job)
         }
       })
-    } catch (e) {
-      setError(e)
-    }
-  }
+    })
 
-  const retire = async (): Promise<void> => {
-    setError(null)
+  const retire = () => {
     const scheduled = uses.find((u) => u.project && u.project.policies.length > 0)
     if (scheduled?.project) {
       setInUse(scheduled.project.project.id)
       return
     }
-    try {
+    void run('retire', async () => {
       const byProject = new Map<string, string[]>()
       for (const a of disk.assignments) byProject.set(a.projectId, [...(byProject.get(a.projectId) ?? []), a.assignmentId])
       const plans: Plan[] = []
@@ -114,9 +117,7 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
           await refresh()
         }
       })
-    } catch (e) {
-      setError(e)
-    }
+    })
   }
 
   return (
@@ -157,35 +158,38 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
         </ul>
       )}
 
+      {repairing && <RunningJob job={repairing} name={diskName(disk)} />}
+      {!repairing && lastRepair && <LastRun job={lastRepair} />}
+
       <div className="disk-card__action" data-testid="disk-action" data-action={action}>
-        {action === 'repair' && (
-          <button type="button" className="btn btn--primary" onClick={() => void repair()}>
+        {action === 'repair' && !repairing && (
+          <Button variant="primary" pending={pending === 'repair'} pendingLabel={t('common.preparing')} onClick={() => void repair()}>
             {t('disks.action.repair')}
-          </button>
+          </Button>
         )}
         {action !== 'repair' && action !== 'none' && <p className="disk-card__hint">{t(`disks.suggest.${action}` as MessageKey)}</p>}
-        <button type="button" className="btn btn--sm" aria-expanded={editing} aria-controls={domId('edit', disk.id)} onClick={() => setEditing(!editing)}>
+        <Button size="sm" aria-expanded={editing} aria-controls={domId('edit', disk.id)} onClick={() => setEditing(!editing)}>
           {t('disks.action.edit')}
-        </button>
+        </Button>
       </div>
       {editing && (
         <div id={domId('edit', disk.id)} className="disk-card__edit" data-testid="disk-edit">
-          <button type="button" className="btn btn--sm" onClick={() => navigate('projects', { kind: 'newProject', diskId: disk.id })}>
+          <Button size="sm" onClick={() => navigate('projects', { kind: 'newProject', diskId: disk.id })}>
             {t('disks.action.use')}
-          </button>
+          </Button>
           {disk.state === 'assigned' && (
-            <button type="button" className="btn btn--danger-outline btn--sm" onClick={() => void retire()}>
+            <Button variant="danger-outline" size="sm" pending={pending === 'retire'} pendingLabel={t('common.preparing')} onClick={retire}>
               {t('disks.action.retire')}
-            </button>
+            </Button>
           )}
         </div>
       )}
       {inUse && (
         <div className="alert alert--warn-inline" role="status">
           <p>{t('disks.retire.inUse', { project: projects.find((p) => p.project.id === inUse)?.project.name ?? '' })}</p>
-          <button type="button" className="btn btn--sm" onClick={() => navigate('projects', { kind: 'editProject', projectId: inUse })}>
+          <Button size="sm" onClick={() => navigate('projects', { kind: 'editProject', projectId: inUse })}>
             {t('disks.retire.editProject')}
-          </button>
+          </Button>
         </div>
       )}
       {error !== null && <ErrorNotice error={error} />}
@@ -196,35 +200,41 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
 }
 
 export function Disks() {
-  const { disks, refresh } = useAppState()
+  const { disks } = useAppState()
   const [pending, setPending] = useState<Pending | null>(null)
-  const [error, setError] = useState<unknown>(null)
-
-  const scan = async (): Promise<void> => {
-    setError(null)
-    try {
-      await api('POST', '/v1/disks/scan')
-      await new Promise((resolve) => setTimeout(resolve, 400))
-      await refresh()
-    } catch (e) {
-      setError(e)
-    }
-  }
+  const { scanning, done, error, scan } = useDiskScan()
 
   const scanButton = (
-    <button type="button" className="btn" onClick={() => void scan()}>
+    <Button pending={scanning} pendingLabel={t('jobs.working', { doing: t('jobs.doing.inventory_scan') })} onClick={() => void scan()}>
       {t('disks.scan')}
-    </button>
+    </Button>
+  )
+  const scanNote = done && (
+    <p className="muted" role="status" data-testid="scan-done">
+      {t('disks.scanDone')}
+    </p>
   )
 
   return (
     <div className="stack">
       {error !== null && <ErrorNotice error={error} />}
       {disks.length === 0 ? (
-        <EmptyState title={t('disks.empty.title')} body={t('disks.empty.body')} action={scanButton} />
+        <EmptyState
+          title={t('disks.empty.title')}
+          body={t('disks.empty.body')}
+          action={
+            <>
+              {scanButton}
+              {scanNote}
+            </>
+          }
+        />
       ) : (
         <>
-          <div className="toolbar">{scanButton}</div>
+          <div className="toolbar">
+            {scanNote}
+            {scanButton}
+          </div>
           <div className="grid-2">
             {disks.map((disk) => (
               <DiskCard key={disk.id} disk={disk} onPreview={setPending} />

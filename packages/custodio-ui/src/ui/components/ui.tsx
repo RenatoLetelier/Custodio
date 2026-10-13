@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { cn, modifier } from '../lib/dom'
 import type { Health } from '../api/types'
 import { t, type MessageKey } from '../i18n'
@@ -46,12 +46,53 @@ export function EmptyState({ title, body, action }: { title: string; body?: stri
   )
 }
 
-export function ProgressBar({ percent, label }: { percent: number; label: string }) {
+// Without a percentage (preparing, listing folders, repairing a disk) the bar keeps moving, so it never looks stuck
+export function ProgressBar({ percent, label, indeterminate = false }: { percent: number; label: string; indeterminate?: boolean }) {
+  if (indeterminate) {
+    return (
+      <div className="progress progress--indeterminate" role="progressbar" aria-label={label} aria-busy="true">
+        <div className="progress__fill" />
+      </div>
+    )
+  }
   const value = Math.max(0, Math.min(100, percent))
   return (
     <div className="progress" role="progressbar" aria-label={label} aria-valuenow={Math.round(value)} aria-valuemin={0} aria-valuemax={100}>
       <div className="progress__fill" style={{ width: `${value}%` }} />
     </div>
+  )
+}
+
+export function Spinner() {
+  return <span className="spinner" aria-hidden="true" />
+}
+
+type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> & {
+  variant?: 'primary' | 'danger' | 'danger-outline' | 'link'
+  size?: 'sm'
+  submit?: boolean
+  // While its action runs the button says so ("Iniciando…") and ignores clicks, but keeps the focus
+  pending?: boolean
+  pendingLabel?: string
+}
+
+export function Button({ variant, size, submit = false, pending = false, pendingLabel, className, onClick, children, ...rest }: ButtonProps) {
+  return (
+    <button
+      {...rest}
+      type={submit ? 'submit' : 'button'}
+      className={cn('btn', variant && `btn--${variant}`, size && `btn--${size}`, className)}
+      aria-disabled={pending || undefined}
+      aria-busy={pending || undefined}
+      data-pending={pending || undefined}
+      onClick={(event) => {
+        if (pending) event.preventDefault()
+        else onClick?.(event)
+      }}
+    >
+      {pending && <Spinner />}
+      {pending && pendingLabel ? pendingLabel : children}
+    </button>
   )
 }
 
@@ -165,9 +206,9 @@ export function PreviewDialog({ title, summary, lines, confirmLabel, danger = fa
           <button type="button" className="btn" onClick={onClose} disabled={busy} data-autofocus>
             {t('common.cancel')}
           </button>
-          <button type="button" className={cn('btn', danger ? 'btn--danger' : 'btn--primary')} onClick={() => void confirm()} disabled={busy || !checked}>
+          <Button variant={danger ? 'danger' : 'primary'} onClick={() => void confirm()} disabled={!checked} pending={busy} pendingLabel={t('common.applying')}>
             {confirmLabel}
-          </button>
+          </Button>
         </>
       }
     >

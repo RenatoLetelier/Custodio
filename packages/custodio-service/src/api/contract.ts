@@ -201,6 +201,7 @@ export const JobSchema = z
     trigger: z.enum(['manual', 'schedule', 'catch_up']),
     policyId: z.string().nullable(),
     projectId: z.string().nullable(),
+    diskId: z.string().nullable().describe('El disco que revisa una reparación'),
     scheduledFor: Timestamp.nullable(),
     dryRun: z.boolean(),
     progress: JobProgressSchema,

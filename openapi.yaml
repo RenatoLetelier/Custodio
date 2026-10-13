@@ -2541,6 +2541,11 @@ components:
           type:
             - string
             - "null"
+        diskId:
+          description: El disco que revisa una reparación
+          type:
+            - string
+            - "null"
         scheduledFor:
           anyOf:
             - type: string
@@ -2599,6 +2604,7 @@ components:
         - trigger
         - policyId
         - projectId
+        - diskId
         - scheduledFor
         - dryRun
         - progress

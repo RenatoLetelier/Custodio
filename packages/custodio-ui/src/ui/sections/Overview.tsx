@@ -1,8 +1,11 @@
-import { Badge, EmptyState, Semaphore } from '../components/ui'
+import { RunningJob } from '../components/RunningJob'
+import { Badge, Button, EmptyState, Semaphore } from '../components/ui'
 import { cn, modifier } from '../lib/dom'
 import { t, type MessageKey } from '../i18n'
 import { formatBytes, formatDateTime, formatRelative } from '../i18n/format'
 import { suggestions, type Suggestion } from '../lib/disks'
+import { isActive } from '../lib/jobs'
+import { useJobName } from '../lib/useJobName'
 import { useFirstRun, useNavigate, type SectionId } from '../navigation'
 import { useAppState } from '../state/AppState'
 import { FirstRun, unfinishedSetup } from './FirstRun'
@@ -19,9 +22,11 @@ const SUGGESTION_TARGET: Record<Suggestion, SectionId> = {
 const STATUS_TONE = { succeeded: 'ok', failed: 'error' } as const
 
 export function Overview() {
-  const { overview, projects } = useAppState()
+  const { overview, projects, jobs } = useAppState()
   const navigate = useNavigate()
+  const name = useJobName()
   const { postponed, setPostponed } = useFirstRun()
+  const running = jobs.filter((j) => isActive(j) && j.kind !== 'inventory_scan')
 
   if ((projects.length === 0 || unfinishedSetup(projects)) && !postponed) return <FirstRun onLater={() => setPostponed(true)} />
   if (!overview) return null
@@ -54,6 +59,25 @@ export function Overview() {
           <p className="status-hero__hint">{t(`overview.statusHint.${overview.status}`)}</p>
         </div>
       </section>
+
+      {running.length > 0 && (
+        <section aria-labelledby="now-title" data-testid="overview-now">
+          <div className="section-head">
+            <h2 id="now-title" className="section-title">
+              {t('overview.now.title')}
+            </h2>
+            <Button variant="link" size="sm" onClick={() => navigate('activity')}>
+              {t('overview.now.see')}
+            </Button>
+          </div>
+          {running.map((job) => (
+            <div key={job.id} className="card job">
+              <div className="job__name">{name(job)}</div>
+              <RunningJob job={job} name={name(job)} />
+            </div>
+          ))}
+        </section>
+      )}
 
       <section aria-labelledby="todo-title">
         <h2 id="todo-title" className="section-title">

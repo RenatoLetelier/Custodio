@@ -9,6 +9,7 @@ export interface StartOptions {
   actor: string
   trigger?: JobTrigger
   scheduledFor?: string | null
+  diskId?: string
 }
 
 export interface BackupStartOptions extends StartOptions {
@@ -32,6 +33,8 @@ const PROGRESS_EVERY_MS = 250
 // Disk scans run on their own (and every minute while they fail): only the latest ones are kept
 const SCANS_KEPT = 20
 const FINISHED: JobStatus[] = ['succeeded', 'failed', 'cancelled', 'interrupted', 'skipped']
+// A disk repair and a disk scan run in the system's own tools and cannot stop half way
+const STOPPABLE: JobKind[] = ['backup', 'verification']
 
 export interface InventoryTask {
   scan(): Promise<Record<string, unknown>>
@@ -124,6 +127,7 @@ export class JobRunner {
     const job = this.get(jobId)
     const entry = this.running.get(jobId)
     if (FINISHED.includes(job.status)) throw new DomainError('conflict', 'Ese trabajo ya terminó.')
+    if (entry && !STOPPABLE.includes(job.kind)) throw new DomainError('conflict', 'Este trabajo no se puede detener a mitad; termina solo.')
     const now = this.core.clock.now().toISOString()
     if (!job.cancelRequestedAt) this.core.audit.record({ actor, action: 'job.cancel_requested', target: jobId, details: { kind: job.kind } })
     if (entry) {
@@ -163,6 +167,7 @@ export class JobRunner {
       trigger: spec.options.trigger ?? 'manual',
       policyId: spec.policy?.id ?? null,
       projectId: spec.policy?.projectId ?? null,
+      diskId: spec.options.diskId ?? null,
       scheduledFor: spec.options.scheduledFor ?? null,
       dryRun: spec.options.dryRun ?? false,
       progress: { ...EMPTY_PROGRESS },

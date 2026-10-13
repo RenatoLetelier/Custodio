@@ -1,39 +1,16 @@
-import { useState } from 'react'
-import { api } from '../api/client'
-import type { Job } from '../api/types'
-import { Badge, EmptyState, ErrorNotice, ProgressBar } from '../components/ui'
+import { RunningJob } from '../components/RunningJob'
+import { Badge, EmptyState } from '../components/ui'
 import { t } from '../i18n'
-import { formatBytes, formatDateTime, formatDuration, formatPercent, formatRelative } from '../i18n/format'
-import { isScanning, percentOf, reviewedOf } from '../lib/jobs'
+import { formatDateTime, formatDuration, formatRelative } from '../i18n/format'
+import { JOB_TONE, resultOf } from '../lib/jobs'
+import { useJobName } from '../lib/useJobName'
 import { useAppState } from '../state/AppState'
-
-const TONE: Partial<Record<Job['status'], 'ok' | 'error' | 'warn' | 'muted' | 'accent'>> = {
-  succeeded: 'ok',
-  failed: 'error',
-  interrupted: 'warn',
-  cancelled: 'muted',
-  skipped: 'muted',
-  running: 'accent',
-  queued: 'muted'
-}
 
 const HISTORY_LIMIT = 30
 
-function useJobName(): (job: Job) => string {
-  const { projects } = useAppState()
-  const policies = projects.flatMap((p) => p.policies)
-  return (job) => {
-    const policy = policies.find((p) => p.id === job.policyId)
-    if (job.kind === 'backup' && policy) return t(job.dryRun ? 'activity.name.dryRun' : 'activity.name.backup', { name: policy.name })
-    if (job.kind === 'verification' && policy) return t('activity.name.verification', { name: policy.name })
-    return t(`jobs.kind.${job.kind}`)
-  }
-}
-
 export function Activity() {
-  const { jobs, projects, refresh } = useAppState()
+  const { jobs, projects } = useAppState()
   const name = useJobName()
-  const [error, setError] = useState<unknown>(null)
   const running = jobs.filter((j) => j.status === 'running' && j.kind !== 'inventory_scan')
   const queued = jobs.filter((j) => j.status === 'queued')
   const upcoming = projects
@@ -42,19 +19,8 @@ export function Activity() {
     .sort((a, b) => (a.nextRunAt as string).localeCompare(b.nextRunAt as string))
   const history = jobs.filter((j) => j.status !== 'running' && j.status !== 'queued' && j.kind !== 'inventory_scan').slice(0, HISTORY_LIMIT)
 
-  const cancel = async (job: Job): Promise<void> => {
-    setError(null)
-    try {
-      await api('POST', `/v1/jobs/${job.id}/cancel`)
-      await refresh()
-    } catch (e) {
-      setError(e)
-    }
-  }
-
   return (
     <div className="stack">
-      {error !== null && <ErrorNotice error={error} />}
       <section aria-labelledby="running-title">
         <h2 id="running-title" className="section-title">
           {t('activity.running')}
@@ -64,37 +30,8 @@ export function Activity() {
         ) : (
           running.map((job) => (
             <div key={job.id} className="card job" data-testid="running-job" data-job={job.id}>
-              <div className="job__header">
-                <div>
-                  <div className="job__name">{name(job)}</div>
-                  <div className="muted">
-                    {job.progress.phase && (
-                      <>
-                        {t(`jobs.phase.${job.progress.phase}`)}
-                        {' · '}
-                      </>
-                    )}
-                    {isScanning(job) ? (
-                      reviewedOf(job)
-                    ) : (
-                      <>
-                        {t('activity.files', { done: job.progress.filesDone, total: job.progress.filesTotal })}
-                        {' · '}
-                        {t('activity.bytes', { done: formatBytes(job.progress.bytesDone), total: formatBytes(job.progress.bytesTotal) })}
-                      </>
-                    )}
-                  </div>
-                </div>
-                {!isScanning(job) && (
-                  <div className="job__percent" data-testid="job-percent">
-                    {formatPercent(percentOf(job))}
-                  </div>
-                )}
-                <button type="button" className="btn btn--danger-outline" onClick={() => void cancel(job)}>
-                  {t('common.cancel')}
-                </button>
-              </div>
-              {!isScanning(job) && <ProgressBar percent={percentOf(job)} label={t('activity.progressOf', { name: name(job) })} />}
+              <div className="job__name">{name(job)}</div>
+              <RunningJob job={job} name={name(job)} />
             </div>
           ))
         )}
@@ -150,7 +87,8 @@ export function Activity() {
                   <tr key={job.id} data-job={job.id}>
                     <td className="table__primary">{name(job)}</td>
                     <td>
-                      <Badge tone={TONE[job.status] ?? 'muted'}>{t(`jobs.status.${job.status}`)}</Badge>
+                      <Badge tone={JOB_TONE[job.status]}>{t(`jobs.status.${job.status}`)}</Badge>
+                      {resultOf(job) && <p className="job__result muted">{resultOf(job)}</p>}
                     </td>
                     <td className="muted">{job.finishedAt ? formatRelative(job.finishedAt) : t('common.none')}</td>
                     <td className="muted">{job.startedAt && job.finishedAt ? formatDuration(Date.parse(job.finishedAt) - Date.parse(job.startedAt)) : t('common.none')}</td>

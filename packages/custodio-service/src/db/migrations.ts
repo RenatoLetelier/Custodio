@@ -175,8 +175,11 @@ export const migrations: Migration[] = [
   },
   {
     version: 3,
-    name: 'job_cancel_requested',
-    sql: `ALTER TABLE jobs ADD COLUMN cancel_requested_at TEXT;`
+    name: 'job_cancel_and_disk',
+    sql: `
+      ALTER TABLE jobs ADD COLUMN cancel_requested_at TEXT;
+      ALTER TABLE jobs ADD COLUMN disk_id TEXT;
+    `
   }
 ]
 

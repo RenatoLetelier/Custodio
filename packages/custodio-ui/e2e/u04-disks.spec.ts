@@ -70,3 +70,11 @@ test('U4 cada disco muestra semáforo, una frase simple, espacio usado y libre y
   await mute.getByRole('button', { name: es.disks.technical.title }).click()
   await expect(mute.getByTestId('technical-details')).toContainText(es.disks.technical.smartNone)
 })
+
+test('U4 «Buscar discos» dice que está buscando y avisa cuando terminó', async ({ page, service }) => {
+  await openApp(page, service)
+  await goTo(page, es.nav.disks)
+  await page.getByRole('button', { name: es.disks.scan }).click()
+  await expect(page.getByTestId('scan-done')).toHaveText(es.disks.scanDone)
+  await expect(page.getByRole('button', { name: es.disks.scan })).not.toHaveAttribute('aria-busy', 'true')
+})

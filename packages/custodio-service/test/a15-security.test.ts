@@ -123,6 +123,11 @@ describe('seguridad', () => {
     expect((await h.post(`/v1/plans/${preview.body.id}/confirm`, { confirm: false })).status).toBe(422)
     expect(h.repairer.repaired).toEqual([])
     const confirmed = await h.post(`/v1/plans/${preview.body.id}/confirm`, { confirm: true })
+    expect(confirmed.body.result.job).toMatchObject({ kind: 'repair', diskId: h.diskId(disk) })
+    // The repair runs in the system's own tools: it cannot stop half way, and the API says so instead of pretending
+    const stop = await h.post(`/v1/jobs/${confirmed.body.result.job.id}/cancel`)
+    expect(stop.status).toBe(409)
+    expect(stop.body.error.message).toContain('no se puede detener')
     const job = await h.s.runner.settled(confirmed.body.result.job.id)
     expect(job).toMatchObject({ kind: 'repair', status: 'succeeded', result: { repaired: true } })
     expect(h.repairer.repaired).toEqual([disk.mountPath])
