@@ -6,6 +6,7 @@ import { RecoveryService } from './allocation/reconstruct.js'
 import { BackupEngine } from './backup/engine.js'
 import { PolicyService } from './backup/policies.js'
 import { Scheduler } from './backup/scheduler.js'
+import { BackupStatusService } from './backup/status.js'
 import { VerificationService } from './backup/verification.js'
 import { InventoryService } from './inventory-health/inventory.js'
 import { RepairService } from './inventory-health/repair.js'
@@ -33,7 +34,8 @@ export function createServices(deps: CoreDeps) {
   const runner = new JobRunner(core, engine, verifier, { scan })
   const repairs = new RepairService(core, plans, runner, scan)
   const scheduler = new Scheduler(core, runner, deletions)
-  return { core, inventory, projects, descriptors, plans, deletions, policies, engine, verifier, recovery, runner, repairs, scheduler }
+  const backupStatus = new BackupStatusService(core)
+  return { core, inventory, projects, descriptors, plans, deletions, policies, engine, verifier, recovery, runner, repairs, scheduler, backupStatus }
 }
 
 export type Services = ReturnType<typeof createServices>

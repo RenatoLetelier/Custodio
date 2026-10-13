@@ -108,6 +108,27 @@ export const PolicySchema = z
   })
   .meta({ id: 'Policy' })
 
+const BackupStatusSchema = z
+  .object({
+    path: z.string(),
+    source: z.object({ assignmentId: Id, projectId: Id, diskId: Id, label: z.string() }).nullable().describe('La carpeta de origen que contiene la ruta; null si Custodio no la administra'),
+    files: z.number().int().nonnegative(),
+    bytes: z.number().int().nonnegative(),
+    backedUp: z.boolean().describe('Algún destino tiene una copia verificada y al día de cada archivo'),
+    destinations: z.array(
+      z.object({
+        assignmentId: Id,
+        diskId: Id,
+        label: z.string(),
+        connected: z.boolean(),
+        filesBackedUp: z.number().int().nonnegative(),
+        complete: z.boolean(),
+        lastCopiedAt: Timestamp.nullable()
+      })
+    )
+  })
+  .meta({ id: 'BackupStatus' })
+
 const ViolationSchema = z
   .object({ code: z.string(), message: z.string(), policyId: z.string().optional(), assignmentId: z.string().optional() })
   .meta({ id: 'Violation' })
@@ -384,6 +405,14 @@ export const ROUTES = {
     params: PolicyParams,
     body: z.object({ dryRun: z.boolean().optional(), mirrorDryRunJobId: Id.optional() }).meta({ id: 'RunPolicyRequest' }),
     responses: { 202: accepted }
+  },
+  getBackupStatus: {
+    method: 'GET',
+    path: '/v1/backups/status',
+    tag: 'Respaldos',
+    summary: '¿Tiene cada archivo de una ruta de origen una copia verificada y al día?',
+    query: z.object({ path: z.string().min(1).describe('Ruta absoluta de un archivo o una carpeta de origen') }),
+    responses: { 200: { description: 'Estado del respaldo de la ruta', schema: BackupStatusSchema } }
   },
   verifyPolicy: {
     method: 'POST',

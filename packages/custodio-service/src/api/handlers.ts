@@ -102,6 +102,7 @@ export function createHandlers(deps: { services: Services; version: string; star
       })
       return accepted(s.runner.startBackup(policy.id, { actor: ctx.actor, dryRun: body.dryRun ?? false, mirrorDryRunJobId: body.mirrorDryRunJobId ?? null }))
     },
+    getBackupStatus: async ({ query }) => ok(await s.backupStatus.of(query.path)),
     verifyPolicy: ({ params, body }, ctx) => {
       const policy = getPolicy(params.policyId)
       if (core.store.locks.holder(policy.id)) throw new DomainError('conflict', 'Esta copia está trabajando; vuelve a intentarlo cuando termine.')

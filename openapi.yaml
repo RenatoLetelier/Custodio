@@ -1131,6 +1131,46 @@ paths:
           content:
             application/json:
               schema: *a22
+  /v1/backups/status:
+    get:
+      operationId: getBackupStatus
+      summary: ¿Tiene cada archivo de una ruta de origen una copia verificada y al día?
+      tags:
+        - Respaldos
+      security:
+        - serviceToken: []
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            description: Ruta absoluta de un archivo o una carpeta de origen
+          description: Ruta absoluta de un archivo o una carpeta de origen
+      responses:
+        "200":
+          description: Estado del respaldo de la ruta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupStatus"
+        "400":
+          description: Petición inválida (validation_failed, invalid_path)
+          content:
+            application/json:
+              schema: &a23
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Falta el token del servicio o no es válido (unauthorized)
+          content:
+            application/json:
+              schema: *a23
+        "500":
+          description: Error interno (internal)
+          content:
+            application/json:
+              schema: *a23
   /v1/policies/{policyId}/verifications:
     post:
       operationId: verifyPolicy
@@ -1171,33 +1211,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a23
+              schema: &a24
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a23
+              schema: *a24
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a23
+              schema: *a24
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a23
+              schema: *a24
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a23
+              schema: *a24
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a23
+              schema: *a24
   /v1/jobs:
     get:
       operationId: listJobs
@@ -1258,18 +1298,18 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a24
+              schema: &a25
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a24
+              schema: *a25
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a24
+              schema: *a25
   /v1/jobs/{jobId}:
     get:
       operationId: getJob
@@ -1296,23 +1336,23 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a25
+              schema: &a26
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a25
+              schema: *a26
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a25
+              schema: *a26
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a25
+              schema: *a26
   /v1/jobs/{jobId}/cancel:
     post:
       operationId: cancelJob
@@ -1347,33 +1387,33 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a26
+              schema: &a27
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a26
+              schema: *a27
         "404":
           description: No existe (not_found)
           content:
             application/json:
-              schema: *a26
+              schema: *a27
         "409":
           description: Conflicto con el estado actual (conflict, plan_not_pending, idempotency_conflict)
           content:
             application/json:
-              schema: *a26
+              schema: *a27
         "422":
           description: No se puede aplicar (topology_invalid, confirmation_required, mirror_not_allowed, source_protected)
           content:
             application/json:
-              schema: *a26
+              schema: *a27
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a26
+              schema: *a27
   /v1/events:
     get:
       operationId: listEvents
@@ -1416,18 +1456,18 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a27
+              schema: &a28
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a27
+              schema: *a28
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a27
+              schema: *a28
   /v1/events/stream:
     get:
       operationId: streamEvents
@@ -1455,18 +1495,18 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a28
+              schema: &a29
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a28
+              schema: *a29
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a28
+              schema: *a29
   /v1/audit:
     get:
       operationId: listAudit
@@ -1502,18 +1542,18 @@ paths:
           description: Petición inválida (validation_failed, invalid_path)
           content:
             application/json:
-              schema: &a29
+              schema: &a30
                 $ref: "#/components/schemas/ApiError"
         "401":
           description: Falta el token del servicio o no es válido (unauthorized)
           content:
             application/json:
-              schema: *a29
+              schema: *a30
         "500":
           description: Error interno (internal)
           content:
             application/json:
-              schema: *a29
+              schema: *a30
 components:
   securitySchemes:
     serviceToken:
@@ -1619,6 +1659,85 @@ components:
       required:
         - entries
         - nextCursor
+      additionalProperties: false
+    BackupStatus:
+      type: object
+      properties:
+        path:
+          type: string
+        source:
+          anyOf:
+            - type: object
+              properties:
+                assignmentId:
+                  type: string
+                  minLength: 1
+                projectId:
+                  type: string
+                  minLength: 1
+                diskId:
+                  type: string
+                  minLength: 1
+                label:
+                  type: string
+              required:
+                - assignmentId
+                - projectId
+                - diskId
+                - label
+              additionalProperties: false
+            - type: "null"
+          description: La carpeta de origen que contiene la ruta; null si Custodio no la administra
+        files:
+          type: integer
+          minimum: 0
+        bytes:
+          type: integer
+          minimum: 0
+        backedUp:
+          type: boolean
+          description: Algún destino tiene una copia verificada y al día de cada archivo
+        destinations:
+          type: array
+          items:
+            type: object
+            properties:
+              assignmentId:
+                type: string
+                minLength: 1
+              diskId:
+                type: string
+                minLength: 1
+              label:
+                type: string
+              connected:
+                type: boolean
+              filesBackedUp:
+                type: integer
+                minimum: 0
+              complete:
+                type: boolean
+              lastCopiedAt:
+                anyOf:
+                  - type: string
+                    format: date-time
+                  - type: "null"
+            required:
+              - assignmentId
+              - diskId
+              - label
+              - connected
+              - filesBackedUp
+              - complete
+              - lastCopiedAt
+            additionalProperties: false
+      required:
+        - path
+        - source
+        - files
+        - bytes
+        - backedUp
+        - destinations
       additionalProperties: false
     Capacity:
       type: object

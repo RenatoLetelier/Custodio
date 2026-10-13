@@ -3,7 +3,7 @@ import type { DeletionService } from '../allocation/deletions.js'
 import type { FileEntry } from '../ports/system.js'
 import type { Core } from '../shared/context.js'
 import { CopyError, isAbortError } from '../shared/errors.js'
-import { META_DIR, QUIET_WINDOW_MS, baseName, isCopierTemp, isIncompleteName, sha256Of } from '../shared/files.js'
+import { QUIET_WINDOW_MS, baseName, isCopierTemp, isIncompleteName, isSkippedDir, sha256Of } from '../shared/files.js'
 import { TRASH_DIR, VERSIONS_DIR, assignmentRoot, copyRoot, metaDir, parseStamp, sourceDirName, stampOf } from '../shared/layout.js'
 import type { JobProgress, Policy } from '../shared/model.js'
 import { relativeSegments } from '../shared/paths.js'
@@ -78,8 +78,6 @@ interface PairPlan {
 
 const DRY_RUN_VALID_MS = 24 * 60 * 60 * 1000
 const LIST_LIMIT = 200
-const SKIPPED_DIRS = new Set([META_DIR, '$RECYCLE.BIN', 'System Volume Information'])
-const skipDir = (relPath: string): boolean => SKIPPED_DIRS.has(baseName(relPath))
 const deletionKey = (d: PlannedDeletion): string => `${d.destinationId}\u0000${d.sourceId}\u0000${d.path}`
 const pathOf = (root: string, relPath: string): string => join(root, ...relativeSegments(relPath))
 
@@ -189,7 +187,7 @@ export class BackupEngine {
         }
         const present = new Set<string>()
 
-        for await (const entry of fs.walk(sourceRoot, skipDir)) {
+        for await (const entry of fs.walk(sourceRoot, isSkippedDir)) {
           present.add(entry.relPath)
           const name = baseName(entry.relPath)
           if (isCopierTemp(name)) continue
@@ -222,7 +220,7 @@ export class BackupEngine {
           pair.copies.push({ entry, replace: existing !== null })
         }
 
-        for await (const entry of fs.walk(root, skipDir)) {
+        for await (const entry of fs.walk(root, isSkippedDir)) {
           if (isCopierTemp(baseName(entry.relPath))) {
             pair.temps.push(pathOf(root, entry.relPath))
             continue

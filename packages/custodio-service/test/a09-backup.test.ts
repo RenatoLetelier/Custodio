@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AtomicCopier } from '../src/adapters/node/atomic-copier.js'
@@ -200,5 +200,51 @@ describe('respaldo incremental', () => {
     expect(resumed.status).toBe('succeeded')
     expect(resumed.result).toMatchObject({ filesUpToDate: 3, filesCopied: 3 })
     expect(await hashTree(setup.copyRoot)).toEqual(await hashTree(setup.sourceRoot))
+  })
+})
+
+describe('estado del respaldo de una ruta', () => {
+  const status = async (path: string) => (await h.get(`/v1/backups/status?path=${encodeURIComponent(path)}`)).body
+
+  it('A9 dice si cada archivo de una carpeta de origen tiene una copia verificada y al día', async () => {
+    h = await createHarness()
+    const setup = await simpleSetup(h, { 'lp/t1/master.m3u8': '#EXTM3U', 'lp/t1/video/seg-1.m4s': 'segmento', 'otra/x.jpg': 'x' })
+    const policy = await h.policy(setup.projectId, { sources: [setup.storage.id], destinations: [setup.backup.id] })
+    const folder = join(setup.sourceRoot, 'lp', 't1')
+
+    const before = await status(folder)
+    expect(before).toMatchObject({ source: { assignmentId: setup.storage.id }, files: 2, bytes: '#EXTM3U'.length + 'segmento'.length, backedUp: false })
+    expect(before.destinations).toEqual([expect.objectContaining({ assignmentId: setup.backup.id, connected: true, filesBackedUp: 0, complete: false, lastCopiedAt: null })])
+
+    expect((await h.run(policy.id)).status).toBe('succeeded')
+    const after = await status(folder)
+    expect(after).toMatchObject({ files: 2, backedUp: true })
+    expect(after.destinations).toEqual([expect.objectContaining({ filesBackedUp: 2, complete: true, lastCopiedAt: expect.any(String) })])
+    expect(await status(join(folder, 'master.m3u8'))).toMatchObject({ files: 1, backedUp: true })
+
+    // A file rewritten at the source is not backed up until the next copy
+    h.clock.advance(2 * 60 * MINUTE)
+    await h.writeFile(setup.source, 'Fotos/lp/t1/master.m3u8', '#EXTM3U\n#EXT-X-VERSION:7')
+    expect(await status(folder)).toMatchObject({ backedUp: false, destinations: [expect.objectContaining({ filesBackedUp: 1, complete: false })] })
+    await h.run(policy.id)
+    expect(await status(folder)).toMatchObject({ backedUp: true })
+
+    // Without the copy itself in the destination, the manifest alone is not enough
+    await rm(join(setup.copyRoot, 'lp', 't1', 'video', 'seg-1.m4s'))
+    expect(await status(folder)).toMatchObject({ backedUp: false, destinations: [expect.objectContaining({ filesBackedUp: 1 })] })
+  })
+
+  it('A9 una ruta que Custodio no administra, vacía o relativa nunca cuenta como respaldada', async () => {
+    h = await createHarness()
+    const setup = await simpleSetup(h, { 'a.jpg': 'a' })
+    const policy = await h.policy(setup.projectId, { sources: [setup.storage.id], destinations: [setup.backup.id] })
+    await h.run(policy.id)
+
+    expect(await status(join(setup.source.mountPath, 'Otra'))).toEqual({ path: join(setup.source.mountPath, 'Otra'), source: null, files: 0, bytes: 0, backedUp: false, destinations: [] })
+    expect(await status(join(setup.sourceRoot, 'no-existe'))).toMatchObject({ source: { assignmentId: setup.storage.id }, files: 0, backedUp: false })
+    expect(await status(setup.sourceRoot)).toMatchObject({ files: 1, backedUp: true })
+    const relative = await h.get(`/v1/backups/status?path=${encodeURIComponent('Fotos/a.jpg')}`)
+    expect(relative.status).toBe(400)
+    expect(relative.body.error.code).toBe('invalid_path')
   })
 })
