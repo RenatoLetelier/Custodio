@@ -58,14 +58,14 @@ export class HelperClient {
     private readonly timeoutMs = 120_000
   ) {}
 
-  call(op: string, args: unknown, confirmation?: string): Promise<HelperResponse> {
+  call(op: string, args: unknown, confirmation?: string, timeoutMs = this.timeoutMs): Promise<HelperResponse> {
     const id = randomUUID()
     return new Promise((resolve, reject) => {
       const socket = createConnection(this.path)
       const timer = setTimeout(() => {
         socket.destroy()
         reject(new HelperUnavailableError(`custodio-helper did not answer ${op} in time`))
-      }, this.timeoutMs)
+      }, timeoutMs)
       socket.on('error', (error) => {
         clearTimeout(timer)
         reject(new HelperUnavailableError(`custodio-helper is not reachable: ${error.message}`))

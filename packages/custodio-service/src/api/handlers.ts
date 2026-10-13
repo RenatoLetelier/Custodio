@@ -4,7 +4,7 @@ import { buildOverview } from '../core/overview.js'
 import type { Services } from '../core/services.js'
 import { DomainError, notFound } from '../core/shared/errors.js'
 import { EVENT_TYPES, type EventType } from '../core/shared/events.js'
-import type { Job, JobStatus } from '../core/shared/model.js'
+import type { Job, JobKind, JobStatus } from '../core/shared/model.js'
 import type { OperationId, RouteDef, ROUTES } from './contract.js'
 import type { StoredResponse } from './idempotency.js'
 import { streamEvents } from './sse.js'
@@ -36,6 +36,7 @@ const created = (body: unknown): StoredResponse => ({ status: 201, body })
 const accepted = (job: Job): StoredResponse => ({ status: 202, body: { job }, headers: { location: `/v1/jobs/${job.id}` } })
 
 const JOB_STATUSES: JobStatus[] = ['queued', 'running', 'succeeded', 'failed', 'cancelled', 'interrupted', 'skipped']
+const JOB_KINDS: JobKind[] = ['backup', 'verification', 'inventory_scan', 'deletion', 'repair']
 
 export function createHandlers(deps: { services: Services; version: string; startedAt: string; openapi: Record<string, unknown> }): Handlers {
   const s = deps.services
@@ -115,11 +116,15 @@ export function createHandlers(deps: { services: Services; version: string; star
     },
 
     listJobs: ({ query }) => {
+      const kinds = query.kind
+        ?.split(',')
+        .map((v) => v.trim())
+        .filter((v): v is JobKind => JOB_KINDS.includes(v as JobKind))
       const status = query.status
         ?.split(',')
         .map((v) => v.trim())
         .filter((v): v is JobStatus => JOB_STATUSES.includes(v as JobStatus))
-      return ok({ jobs: s.runner.list({ policyId: query.policyId, kind: query.kind, status, limit: query.limit }) })
+      return ok({ jobs: s.runner.list({ policyId: query.policyId, kinds, status, limit: query.limit }) })
     },
     getJob: ({ params }) => ok(s.runner.get(params.jobId)),
     cancelJob: ({ params }, ctx) => ({ status: 202, body: { job: s.runner.cancel(params.jobId, ctx.actor) } }),

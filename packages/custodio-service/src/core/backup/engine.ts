@@ -125,7 +125,7 @@ export class BackupEngine {
     const progress: JobProgress = { filesDone: 0, filesTotal: 0, bytesDone: 0, bytesTotal: 0, phase: 'scanning' }
     const report = (): void => options.onProgress?.({ ...progress })
     report()
-    const pairs = await this.plan(policy, endpoints, summary, () => {
+    const pairs = await this.plan(policy, endpoints, summary, options.signal, () => {
       progress.filesDone++
       report()
     })
@@ -165,7 +165,7 @@ export class BackupEngine {
         report()
       }
       for (const pair of pairs) await this.copyPair(policy, pair, stamp, summary, progress, pacer, options)
-      for (const pair of pairs) await this.applyDeletions(policy, pair, stamp, summary, allowMirror)
+      for (const pair of pairs) await this.applyDeletions(policy, pair, stamp, summary, allowMirror, options.signal)
       if (policy.mode !== 'append') {
         for (const base of new Set(pairs.map((p) => p.destinationBase))) await this.purge(base, policy.retentionDays)
       }
@@ -179,7 +179,7 @@ export class BackupEngine {
     return finish()
   }
 
-  private async plan(policy: Policy, endpoints: Map<string, Endpoint>, summary: RunSummary, onReviewed: () => void): Promise<PairPlan[]> {
+  private async plan(policy: Policy, endpoints: Map<string, Endpoint>, summary: RunSummary, signal: AbortSignal, onReviewed: () => void): Promise<PairPlan[]> {
     const { fs, store, clock } = this.core
     const now = clock.now().getTime()
     const tombstones = this.deletions.tombstones(policy.projectId)
@@ -215,6 +215,7 @@ export class BackupEngine {
         }
 
         for await (const entry of fs.walk(sourceRoot, isSkippedDir, onUnreadable)) {
+          signal.throwIfAborted()
           onReviewed()
           present.add(entry.relPath)
           const name = baseName(entry.relPath)
@@ -249,6 +250,7 @@ export class BackupEngine {
         }
 
         for await (const entry of fs.walk(root, isSkippedDir)) {
+          signal.throwIfAborted()
           if (isCopierTemp(baseName(entry.relPath))) {
             pair.temps.push(pathOf(root, entry.relPath))
             continue
@@ -435,7 +437,7 @@ export class BackupEngine {
     }
   }
 
-  private async applyDeletions(policy: Policy, pair: PairPlan, stamp: string, summary: RunSummary, allowMirror: boolean): Promise<void> {
+  private async applyDeletions(policy: Policy, pair: PairPlan, stamp: string, summary: RunSummary, allowMirror: boolean, signal: AbortSignal): Promise<void> {
     if (policy.mode === 'append' || pair.deletions.length === 0) return
     if (policy.mode === 'mirror' && !allowMirror) {
       summary.deletionsHeld += pair.deletions.length
@@ -443,6 +445,7 @@ export class BackupEngine {
     }
     const { fs, store } = this.core
     for (const relPath of pair.deletions) {
+      signal.throwIfAborted()
       const path = pathOf(pair.copyRoot, relPath)
       if (policy.mode === 'retention') {
         const trashed = join(metaDir(pair.destinationBase), TRASH_DIR, stamp, sourceDirName(pair.source.assignment.label), ...relativeSegments(relPath))

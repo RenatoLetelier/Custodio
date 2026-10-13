@@ -1,6 +1,8 @@
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import type { FileSystemPort } from '../src/core/ports/system.js'
+import type { Job } from '../src/core/shared/model.js'
 import { sha256, simpleSetup } from './support/backup.js'
 import { createHarness, HOUR, type Harness } from './support/harness.js'
 
@@ -58,6 +60,35 @@ describe('verificación periódica', () => {
     expect(await status()).toMatchObject({ backedUp: true })
     const again = await h.post(`/v1/policies/${policy.id}/verifications`, { samplePercent: 100 })
     expect(await h.s.runner.settled(again.body.job.id)).toMatchObject({ status: 'succeeded', result: { corrupted: [] } })
+  })
+
+  it('A12 la revisión informa cuánto lleva leído y se puede cancelar a mitad de un archivo', async () => {
+    let jobId = ''
+    let reads = 0
+    let copyRoot = ''
+    h = await createHarness({
+      fs: (inner) => {
+        const fs = Object.create(inner) as FileSystemPort
+        fs.openRead = async function* (path) {
+          if (jobId && path.startsWith(copyRoot) && ++reads === 2) h.s.runner.cancel(jobId, 'tester')
+          yield* inner.openRead(path)
+        }
+        return fs
+      }
+    })
+    const setup = await simpleSetup(h, Object.fromEntries(Array.from({ length: 4 }, (_, i) => [`video-${i}.mp4`, Buffer.alloc(600_000, String(i))])))
+    copyRoot = setup.copyRoot
+    const policy = await h.policy(setup.projectId, { sources: [setup.storage.id], destinations: [setup.backup.id] })
+    await h.run(policy.id)
+    const updates: Job[] = []
+    h.s.runner.onUpdate((job) => updates.push(job))
+
+    jobId = (await h.post(`/v1/policies/${policy.id}/verifications`, { samplePercent: 100 })).body.job.id
+    const job = await h.s.runner.settled(jobId)
+    expect(job.status).toBe('cancelled')
+    const progress = updates.filter((u) => u.id === jobId && u.progress.phase === 'verifying').map((u) => u.progress)
+    expect(progress[0]).toEqual({ phase: 'verifying', filesDone: 0, filesTotal: 4, bytesDone: 0, bytesTotal: 4 * 600_000 })
+    expect(job.progress.filesDone).toBe(1)
   })
 
   it('A12 una muestra parcial también encuentra copias desaparecidas', async () => {

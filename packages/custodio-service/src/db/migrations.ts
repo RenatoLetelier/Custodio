@@ -172,6 +172,11 @@ export const migrations: Migration[] = [
     version: 2,
     name: 'mirror_paths',
     sql: `ALTER TABLE assignments ADD COLUMN mirror_of TEXT;`
+  },
+  {
+    version: 3,
+    name: 'job_cancel_requested',
+    sql: `ALTER TABLE jobs ADD COLUMN cancel_requested_at TEXT;`
   }
 ]
 

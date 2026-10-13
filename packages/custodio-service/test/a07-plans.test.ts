@@ -59,7 +59,7 @@ describe('planes con confirmación', () => {
 
     expect(await userFiles(main)).toEqual(mainBefore)
     expect(await userFiles(extra)).toEqual([])
-    expect(h.s.core.store.jobs.list({ kind: 'backup' })).toEqual([])
+    expect(h.s.core.store.jobs.list({ kinds: ['backup'] })).toEqual([])
   })
 
   it('A7 confirmar exige confirm: true y un plan vigente', async () => {

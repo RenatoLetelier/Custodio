@@ -7,7 +7,7 @@ import { assertRealAdaptersAllowed } from '../adapters/windows/guard.js'
 import { OPERATIONS, type OperationName } from './operations.js'
 
 export interface CommandRunner {
-  run(file: string, args: string[]): Promise<CommandResult>
+  run(file: string, args: string[], timeoutMs?: number): Promise<CommandResult>
 }
 
 // The elevated helper never trusts PATH for system tools; smartctl comes from its installer's folder when it is there
@@ -24,9 +24,9 @@ export function executablePath(file: string, env: NodeJS.ProcessEnv = process.en
 
 // The real runner: only inside the elevated helper, never under tests
 export class ExecFileRunner implements CommandRunner {
-  async run(file: string, args: string[]): Promise<CommandResult> {
+  async run(file: string, args: string[], timeoutMs?: number): Promise<CommandResult> {
     assertRealAdaptersAllowed('custodio-helper')
-    return runFile(executablePath(file), args)
+    return runFile(executablePath(file), args, { timeoutMs })
   }
 }
 
@@ -115,7 +115,7 @@ export class Helper {
 
     const command = (operation.command as (a: unknown) => { file: string; args: string[] })(args.data)
     try {
-      return { id, ok: true, result: await this.runner.run(command.file, command.args) }
+      return { id, ok: true, result: await this.runner.run(command.file, command.args, operation.timeoutMs) }
     } catch (error) {
       return fail('command_failed', error instanceof Error ? error.message : String(error))
     }

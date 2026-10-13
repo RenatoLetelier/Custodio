@@ -26,7 +26,11 @@ export interface Operation<A extends z.ZodType = z.ZodType> {
   args: A
   command: (args: z.output<A>) => { file: string; args: string[] }
   requiresConfirmation: boolean
+  // Reads answer in seconds; checking a big disk can take hours
+  timeoutMs?: number
 }
+
+export const REPAIR_TIMEOUT_MS = 12 * 60 * 60 * 1000
 
 const operation = <A extends z.ZodType>(op: Operation<A>): Operation<A> => op
 
@@ -50,12 +54,14 @@ export const OPERATIONS = {
   'chkdsk.scan': operation({
     args: z.object({ drive: DriveSchema }).strict(),
     command: (a) => ({ file: 'chkdsk.exe', args: [a.drive, '/scan'] }),
-    requiresConfirmation: false
+    requiresConfirmation: false,
+    timeoutMs: REPAIR_TIMEOUT_MS
   }),
   'chkdsk.fix': operation({
     args: z.object({ drive: DriveSchema }).strict(),
     command: (a) => ({ file: 'chkdsk.exe', args: [a.drive, '/f'] }),
-    requiresConfirmation: true
+    requiresConfirmation: true,
+    timeoutMs: REPAIR_TIMEOUT_MS
   })
 } as const
 

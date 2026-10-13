@@ -35,7 +35,7 @@ export function buildOverview(core: Core): Overview {
   }
   for (const policy of policies) {
     if (policy.overdueSince) raise('red', 'backup_overdue')
-    const last = store.jobs.list({ policyId: policy.id, kind: 'backup', status: ['succeeded', 'failed'], limit: 5 }).find((j) => !j.dryRun)
+    const last = store.jobs.list({ policyId: policy.id, kinds: ['backup'], status: ['succeeded', 'failed'], limit: 5 }).find((j) => !j.dryRun)
     if (last?.status === 'failed') raise('red', 'backup_failed')
   }
   if (assignedDisks.size === 0) raise('unknown', 'not_configured')
@@ -49,7 +49,7 @@ export function buildOverview(core: Core): Overview {
     freeBytes += reading.totalBytes - reading.usedBytes
   }
 
-  const lastJob = store.jobs.list({ kind: 'backup', status: ['succeeded', 'failed'], limit: 20 }).find((j) => !j.dryRun) ?? null
+  const lastJob = store.jobs.list({ kinds: ['backup'], status: ['succeeded', 'failed'], limit: 20 }).find((j) => !j.dryRun) ?? null
   const now = clock.now()
   let nextBackup: Overview['nextBackup'] = null
   for (const policy of policies.filter((p) => !p.paused)) {

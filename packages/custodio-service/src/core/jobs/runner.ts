@@ -29,6 +29,8 @@ interface Spec {
 
 const EMPTY_PROGRESS: JobProgress = { filesDone: 0, filesTotal: 0, bytesDone: 0, bytesTotal: 0 }
 const PROGRESS_EVERY_MS = 250
+// Disk scans run on their own (and every minute while they fail): only the latest ones are kept
+const SCANS_KEPT = 20
 const FINISHED: JobStatus[] = ['succeeded', 'failed', 'cancelled', 'interrupted', 'skipped']
 
 export interface InventoryTask {
@@ -39,7 +41,8 @@ export interface InventoryTask {
 export class JobRunner {
   private readonly running = new Map<string, { controller: AbortController; done: Promise<Job> }>()
   private readonly listeners = new Set<JobListener>()
-  private readonly lastProgress = new Map<string, { at: number; phase: JobProgress['phase'] }>()
+  // The last progress saved of each running job, and the latest one reported (saved when the job ends)
+  private readonly lastProgress = new Map<string, { at: number; phase: JobProgress['phase']; latest: JobProgress }>()
 
   constructor(
     private readonly core: Core,
@@ -100,13 +103,13 @@ export class JobRunner {
 
   startVerification(policyId: string, options: StartOptions & { samplePercent?: number }): Job {
     const policy = this.policy(policyId)
-    return this.launch({ kind: 'verification', policy, options, lock: true }, (job, signal) =>
-      this.verifier.verify(policy, job.id, options.samplePercent ?? policy.verifySamplePercent, signal)
+    return this.launch({ kind: 'verification', policy, options, lock: true }, (job, signal, progress) =>
+      this.verifier.verify(policy, job.id, options.samplePercent ?? policy.verifySamplePercent, signal, progress)
     )
   }
 
   startScan(options: StartOptions): Job {
-    const active = this.core.store.jobs.list({ kind: 'inventory_scan', status: ['running'], limit: 1 })[0]
+    const active = this.core.store.jobs.list({ kinds: ['inventory_scan'], status: ['running'], limit: 1 })[0]
     if (active && this.running.has(active.id)) return active
     return this.launch({ kind: 'inventory_scan', policy: null, options, lock: false }, () => this.inventory.scan())
   }
@@ -116,17 +119,23 @@ export class JobRunner {
     return this.launch({ kind, policy: null, options, lock: false }, (_job, signal) => work(signal))
   }
 
+  // Answers at once: the job says it is being cancelled, and stops at its next safe point
   cancel(jobId: string, actor: string): Job {
     const job = this.get(jobId)
     const entry = this.running.get(jobId)
     if (FINISHED.includes(job.status)) throw new DomainError('conflict', 'Ese trabajo ya terminó.')
-    this.core.audit.record({ actor, action: 'job.cancel_requested', target: jobId, details: { kind: job.kind } })
+    const now = this.core.clock.now().toISOString()
+    if (!job.cancelRequestedAt) this.core.audit.record({ actor, action: 'job.cancel_requested', target: jobId, details: { kind: job.kind } })
     if (entry) {
+      const requested: Job = { ...job, cancelRequestedAt: job.cancelRequestedAt ?? now }
+      this.core.store.jobs.update(requested)
+      this.notify(requested)
       entry.controller.abort(new DOMException('Cancelado por el usuario', 'AbortError'))
-      return job
+      return requested
     }
-    const cancelled: Job = { ...job, status: 'cancelled', finishedAt: this.core.clock.now().toISOString() }
+    const cancelled: Job = { ...job, status: 'cancelled', finishedAt: now, cancelRequestedAt: job.cancelRequestedAt ?? now }
     this.core.store.jobs.update(cancelled)
+    this.notify(cancelled)
     return cancelled
   }
 
@@ -162,7 +171,8 @@ export class JobRunner {
       requestedBy: spec.options.actor,
       createdAt: now,
       startedAt: now,
-      finishedAt: null
+      finishedAt: null,
+      cancelRequestedAt: null
     }
 
     const started = store.transaction(() => {
@@ -205,6 +215,7 @@ export class JobRunner {
     } finally {
       if (spec.lock && spec.policy) this.core.store.locks.release(spec.policy.id, job.id)
       this.lastProgress.delete(job.id)
+      if (spec.kind === 'inventory_scan') this.core.store.jobs.prune('inventory_scan', SCANS_KEPT)
     }
     this.notify(final)
     return final
@@ -215,8 +226,11 @@ export class JobRunner {
     const now = Date.now()
     const last = this.lastProgress.get(jobId)
     const finished = progress.filesTotal > 0 && progress.filesDone >= progress.filesTotal
-    if (last && now - last.at < PROGRESS_EVERY_MS && last.phase === progress.phase && !finished) return
-    this.lastProgress.set(jobId, { at: now, phase: progress.phase })
+    if (last && now - last.at < PROGRESS_EVERY_MS && last.phase === progress.phase && !finished) {
+      last.latest = progress
+      return
+    }
+    this.lastProgress.set(jobId, { at: now, phase: progress.phase, latest: progress })
     const job = this.core.store.jobs.get(jobId)
     if (!job) return
     const updated = { ...job, progress }
@@ -227,7 +241,7 @@ export class JobRunner {
   private succeed(jobId: string, spec: Spec, result: Record<string, unknown>): Job {
     const { store, clock, events } = this.core
     return store.transaction(() => {
-      const job = this.get(jobId)
+      const job = this.withLatestProgress(jobId)
       const now = clock.now().toISOString()
       let status: JobStatus = 'succeeded'
       let error: JobError | null = null
@@ -271,7 +285,7 @@ export class JobRunner {
   private fail(jobId: string, spec: Spec, cause: unknown): Job {
     const { store, clock } = this.core
     return store.transaction(() => {
-      const job = this.get(jobId)
+      const job = this.withLatestProgress(jobId)
       const now = clock.now().toISOString()
       if (isAbortError(cause)) {
         const cancelled: Job = { ...job, status: 'cancelled', finishedAt: now, error: { code: 'cancelled', message: 'Cancelado por el usuario.' } }
@@ -288,6 +302,12 @@ export class JobRunner {
       this.core.logger.error('job failed', { jobId, kind: job.kind, error })
       return failed
     })
+  }
+
+  private withLatestProgress(jobId: string): Job {
+    const job = this.get(jobId)
+    const latest = this.lastProgress.get(jobId)?.latest
+    return latest ? { ...job, progress: latest } : job
   }
 
   private publishFailure(policy: Policy, jobId: string, error: JobError): void {

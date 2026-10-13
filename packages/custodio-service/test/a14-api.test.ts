@@ -5,7 +5,9 @@ import { parse } from 'yaml'
 import { EVENTS_FILE, OPENAPI_FILE, eventsMarkdown, openApiYaml } from '../src/api/contracts-files.js'
 import { ROUTES } from '../src/api/contract.js'
 import { SimCopier } from '../src/adapters/sim/io.js'
-import { simpleSetup } from './support/backup.js'
+import type { FileSystemPort } from '../src/core/ports/system.js'
+import type { Job } from '../src/core/shared/model.js'
+import { listFiles, simpleSetup } from './support/backup.js'
 import { createHarness, TOKEN, type Harness } from './support/harness.js'
 
 let h: Harness
@@ -67,6 +69,47 @@ describe('API /v1', () => {
     const again = await h.post(`/v1/jobs/${jobId}/cancel`)
     expect(again.status).toBe(409)
     expect(h.events('backup.failed')).toEqual([])
+  })
+
+  it('A14 cancelar responde al instante diciendo que se está cancelando, y la copia se detiene aunque esté revisando qué falta copiar', async () => {
+    let jobId = ''
+    let reviewed = 0
+    let cancel: Awaited<ReturnType<Harness['post']>> | null = null
+    h = await createHarness({
+      fs: (inner) => {
+        const fs = Object.create(inner) as FileSystemPort
+        fs.walk = async function* (root, skipDir, onUnreadable) {
+          for await (const entry of inner.walk(root, skipDir, onUnreadable)) {
+            if (jobId && ++reviewed === 3) cancel = await h.post(`/v1/jobs/${jobId}/cancel`)
+            yield entry
+          }
+        }
+        return fs
+      }
+    })
+    const setup = await simpleSetup(h, Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`foto-${i}.jpg`, `foto ${i}`])))
+    const policy = await h.policy(setup.projectId, { sources: [setup.storage.id], destinations: [setup.backup.id] })
+    const updates: Job[] = []
+    h.s.runner.onUpdate((job) => updates.push(job))
+
+    jobId = (await h.post(`/v1/policies/${policy.id}/runs`, {})).body.job.id
+    await h.s.runner.idle()
+    expect(cancel).toMatchObject({ status: 202, body: { job: { status: 'running', cancelRequestedAt: expect.any(String) } } })
+    expect(updates.find((u) => u.cancelRequestedAt && u.status === 'running')).toBeDefined()
+    expect((await h.get(`/v1/jobs/${jobId}`)).body).toMatchObject({ status: 'cancelled', cancelRequestedAt: expect.any(String), progress: { phase: 'scanning' } })
+    expect(reviewed).toBe(3)
+    expect(await listFiles(setup.copyRoot)).toEqual([])
+  })
+
+  it('A14 los trabajos se filtran por varios tipos a la vez y las búsquedas de discos viejas no se acumulan', async () => {
+    h = await createHarness()
+    const setup = await simpleSetup(h, { 'a.jpg': 'uno' })
+    const policy = await h.policy(setup.projectId, { sources: [setup.storage.id], destinations: [setup.backup.id] })
+    await h.run(policy.id)
+    for (let i = 0; i < 25; i++) await h.scan()
+    expect((await h.get('/v1/jobs?kind=inventory_scan&limit=100')).body.jobs).toHaveLength(20)
+    const mine = (await h.get('/v1/jobs?kind=backup,verification')).body.jobs
+    expect(mine.map((j: Job) => j.kind)).toEqual(['backup'])
   })
 
   it('A14 con Idempotency-Key la misma petición devuelve la misma respuesta sin repetir el efecto', async () => {

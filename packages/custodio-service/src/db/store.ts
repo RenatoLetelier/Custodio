@@ -422,7 +422,8 @@ class SqliteJobs implements JobStore {
       requestedBy: str(r.requested_by),
       createdAt: str(r.created_at),
       startedAt: strOrNull(r.started_at),
-      finishedAt: strOrNull(r.finished_at)
+      finishedAt: strOrNull(r.finished_at),
+      cancelRequestedAt: strOrNull(r.cancel_requested_at)
     }
   }
 
@@ -442,7 +443,8 @@ class SqliteJobs implements JobStore {
       requested_by: j.requestedBy,
       created_at: j.createdAt,
       started_at: j.startedAt,
-      finished_at: j.finishedAt
+      finished_at: j.finishedAt,
+      cancel_requested_at: j.cancelRequestedAt
     }
   }
 
@@ -458,9 +460,12 @@ class SqliteJobs implements JobStore {
       where.push('policy_id = :policyId')
       params.policyId = filter.policyId
     }
-    if (filter.kind) {
-      where.push('kind = :kind')
-      params.kind = filter.kind
+    if (filter.kinds && filter.kinds.length > 0) {
+      const names = filter.kinds.map((kind, i) => {
+        params[`kind${i}`] = kind
+        return `:kind${i}`
+      })
+      where.push(`kind IN (${names.join(', ')})`)
     }
     if (filter.status && filter.status.length > 0) {
       const names = filter.status.map((status, i) => {
@@ -475,8 +480,10 @@ class SqliteJobs implements JobStore {
 
   insert(job: Job): void {
     this.s.run(
-      `INSERT INTO jobs VALUES (:id, :kind, :status, :trigger, :policy_id, :project_id, :scheduled_for, :dry_run, :progress,
-        :result, :error, :requested_by, :created_at, :started_at, :finished_at)`,
+      `INSERT INTO jobs (id, kind, status, trigger, policy_id, project_id, scheduled_for, dry_run, progress, result, error, requested_by,
+        created_at, started_at, finished_at, cancel_requested_at)
+       VALUES (:id, :kind, :status, :trigger, :policy_id, :project_id, :scheduled_for, :dry_run, :progress, :result, :error, :requested_by,
+        :created_at, :started_at, :finished_at, :cancel_requested_at)`,
       this.params(job)
     )
   }
@@ -484,8 +491,16 @@ class SqliteJobs implements JobStore {
   update(job: Job): void {
     this.s.run(
       `UPDATE jobs SET status = :status, scheduled_for = :scheduled_for, progress = :progress, result = :result,
-        error = :error, started_at = :started_at, finished_at = :finished_at WHERE id = :id`,
+        error = :error, started_at = :started_at, finished_at = :finished_at, cancel_requested_at = :cancel_requested_at WHERE id = :id`,
       this.params(job)
+    )
+  }
+
+  prune(kind: Job['kind'], keep: number): number {
+    return this.s.run(
+      `DELETE FROM jobs WHERE kind = :kind AND finished_at IS NOT NULL AND id NOT IN (
+        SELECT id FROM jobs WHERE kind = :kind ORDER BY created_at DESC, rowid DESC LIMIT :keep)`,
+      { kind, keep }
     )
   }
 }

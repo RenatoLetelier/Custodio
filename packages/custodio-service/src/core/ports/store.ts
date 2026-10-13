@@ -57,7 +57,7 @@ export interface PolicyStore {
 export interface JobFilter {
   policyId?: string
   status?: JobStatus[]
-  kind?: Job['kind']
+  kinds?: Job['kind'][]
   limit?: number
 }
 
@@ -66,6 +66,8 @@ export interface JobStore {
   list(filter?: JobFilter): Job[]
   insert(job: Job): void
   update(job: Job): void
+  // Keeps only the newest finished jobs of a kind
+  prune(kind: Job['kind'], keep: number): number
 }
 
 export interface LockStore {

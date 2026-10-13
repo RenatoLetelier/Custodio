@@ -1,11 +1,11 @@
 import type { DiskProbe, DiskRepairer, PhysicalDiskInfo, RepairOutcome, SmartReader, SmartReading, VolumeReader, VolumeUsage } from '../../core/ports/system.js'
 import type { HelperResponse } from '../../helper/helper.js'
-import { CONFIRMATION_OPERATION, REPAIR_OPERATION } from '../../helper/operations.js'
+import { CONFIRMATION_OPERATION, REPAIR_OPERATION, REPAIR_TIMEOUT_MS } from '../../helper/operations.js'
 import { assertRealAdaptersAllowed } from './guard.js'
 import { parseDisks, parseSmartctl, parseVolumes } from './parsers.js'
 
 export interface HelperCaller {
-  call(op: string, args: unknown, confirmation?: string): Promise<HelperResponse>
+  call(op: string, args: unknown, confirmation?: string, timeoutMs?: number): Promise<HelperResponse>
 }
 
 async function stdoutOf(helper: HelperCaller, op: string, args: unknown): Promise<string> {
@@ -67,7 +67,8 @@ export class WindowsRepairer implements DiskRepairer {
 
   async repair(mountPath: string, confirmation: string | null): Promise<RepairOutcome> {
     assertRealAdaptersAllowed('WindowsRepairer')
-    const response = await this.helper.call(REPAIR_OPERATION, { drive: driveOf(mountPath) }, confirmation ?? undefined)
+    // The helper gives up on the repair first and still answers, so the service waits a little longer
+    const response = await this.helper.call(REPAIR_OPERATION, { drive: driveOf(mountPath) }, confirmation ?? undefined, REPAIR_TIMEOUT_MS + 60_000)
     if (!response.ok) throw new Error(`custodio-helper ${REPAIR_OPERATION}: ${response.error.code}`)
     if (!('stdout' in response.result)) throw new Error(`custodio-helper ${REPAIR_OPERATION}: unexpected answer`)
     return { repaired: response.result.exitCode === 0, details: response.result.stdout.trim().split('\n').slice(-3).join('\n') }

@@ -6,7 +6,7 @@ import { createHarness, type Harness } from './support/harness.js'
 let h: Harness
 afterEach(async () => h?.close())
 
-const backupJobs = (policyId: string) => h.s.core.store.jobs.list({ policyId, kind: 'backup' }).reverse()
+const backupJobs = (policyId: string) => h.s.core.store.jobs.list({ policyId, kinds: ['backup'] }).reverse()
 
 describe('programación de copias', () => {
   it('A8 dispara según cron y zona horaria IANA con reloj simulado y registra la ejecución', async () => {

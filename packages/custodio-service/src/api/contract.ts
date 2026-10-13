@@ -185,9 +185,11 @@ const JobProgressSchema = z
     bytesDone: Bytes,
     bytesTotal: Bytes,
     phase: z
-      .enum(['scanning', 'checking', 'copying'])
+      .enum(['scanning', 'checking', 'copying', 'verifying'])
       .optional()
-      .describe('Solo en copias: scanning revisa qué falta copiar (filesDone cuenta los archivos revisados), checking compara por hash lo que ya está en el destino, copying copia')
+      .describe(
+        'En copias: scanning revisa qué falta copiar (filesDone cuenta los archivos revisados), checking compara por hash lo que ya está en el destino, copying copia. En revisiones de copias: verifying'
+      )
   })
   .meta({ id: 'JobProgress' })
 
@@ -207,7 +209,8 @@ export const JobSchema = z
     requestedBy: z.string(),
     createdAt: Timestamp,
     startedAt: Timestamp.nullable(),
-    finishedAt: Timestamp.nullable()
+    finishedAt: Timestamp.nullable(),
+    cancelRequestedAt: Timestamp.nullable().describe('Cuándo se pidió cancelarlo; el trabajo se detiene en el siguiente punto seguro')
   })
   .meta({ id: 'Job' })
 
@@ -466,7 +469,7 @@ export const ROUTES = {
     summary: 'Trabajos recientes',
     query: z.object({
       policyId: Id.optional(),
-      kind: JobSchema.shape.kind.optional(),
+      kind: z.string().optional().describe('Tipos separados por coma'),
       status: z.string().optional().describe('Estados separados por coma'),
       limit: Limit
     }),

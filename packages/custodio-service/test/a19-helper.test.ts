@@ -5,6 +5,7 @@ import { join, relative, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { CommandResult } from '../src/adapters/node/exec.js'
 import { ConfirmationBook, Helper, executablePath, type CommandRunner } from '../src/helper/helper.js'
+import { REPAIR_TIMEOUT_MS } from '../src/helper/operations.js'
 import { HelperClient, serveHelper } from '../src/helper/transport.js'
 
 const SECRET = 'helper-secret-0123456789abcdef'
@@ -12,8 +13,10 @@ const SRC = resolve(import.meta.dirname, '../src')
 
 class RecordingRunner implements CommandRunner {
   readonly calls: { file: string; args: string[] }[] = []
-  run(file: string, args: string[]): Promise<CommandResult> {
+  readonly timeouts: (number | undefined)[] = []
+  run(file: string, args: string[], timeoutMs?: number): Promise<CommandResult> {
     this.calls.push({ file, args })
+    this.timeouts.push(timeoutMs)
     return Promise.resolve({ stdout: '{}', stderr: '', exitCode: 0 })
   }
 }
@@ -99,6 +102,10 @@ describe('privilegios mínimos', () => {
     now += 61_000
     expect(await helper.handle(request('chkdsk.fix', { drive: 'E:' }, { confirmation: late }))).toMatchObject({ ok: false, error: { code: 'confirmation_invalid' } })
     expect(runner.calls).toEqual([{ file: 'chkdsk.exe', args: ['E:', '/f'] }])
+    // Checking a big disk takes hours: chkdsk gets its own long limit, a SMART read keeps the short one
+    expect(runner.timeouts).toEqual([REPAIR_TIMEOUT_MS])
+    await helper.handle(request('smart.read', { device: '/dev/pd0' }))
+    expect(runner.timeouts.at(-1)).toBeUndefined()
   })
 
   it('A19 el servicio llega al helper por un canal local y el helper exige su secreto', async () => {

@@ -104,8 +104,8 @@ export type JobKind = 'backup' | 'verification' | 'inventory_scan' | 'deletion' 
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted' | 'skipped'
 export type JobTrigger = 'manual' | 'schedule' | 'catch_up'
 
-// What a backup is doing: listing what to copy, checking what the destination already has, or copying
-export type JobPhase = 'scanning' | 'checking' | 'copying'
+// What a backup is doing (listing what to copy, checking what the destination already has, copying), or a verification re-reading copies
+export type JobPhase = 'scanning' | 'checking' | 'copying' | 'verifying'
 
 export interface JobProgress {
   filesDone: number
@@ -137,6 +137,8 @@ export interface Job {
   createdAt: string
   startedAt: string | null
   finishedAt: string | null
+  // Set when someone asks to cancel; the job stops at the next safe point (the file being copied is never left half done)
+  cancelRequestedAt: string | null
 }
 
 export interface ManifestEntry {
