@@ -150,7 +150,11 @@ Escala de 4 px: 4, 8, 12, 16, 20, 24, 28, 40 (`--space-1` … `--space-10`).
 
 - **Detalles técnicos / Avanzado:** sección plegada por defecto con un botón de texto secundario y chevron (`chevronRight` → `chevronDown`), `aria-expanded` y contenido en `.props` o en monoespaciada. Es el único lugar donde aparecen SMART, cron, serial o WWN (U4).
 - **Previsualización de acción riesgosa:** modal ancho con una frase simple arriba ("Se copiarán 1,2 GB y no se borrará nada"), una lista breve de efectos y dos botones: "Cancelar" y la acción concreta ("Retirar disco"), en `.btn--danger` si borra o modifica algo. El botón de confirmar nunca dice solo "Aceptar" (U6).
-- **Tarjeta de disco:** punto del semáforo + frase simple, barra de espacio usado/libre (`.progress`), acción sugerida como botón principal y "Detalles técnicos" plegado (U4).
+- **Tarjeta de disco:** punto del semáforo + frase simple, barra de espacio usado/libre (`.progress`), "Dónde se usa" y "Detalles técnicos" plegado (U4). Solo reparar aparece como botón directo; usar el disco en un proyecto y dejar de usarlo quedan dentro de **Editar** (`.disk-card__edit`, con `aria-expanded`), para que no se pulsen por accidente. Lo demás es una sugerencia en texto.
+- **Tarjeta de proyecto (`.project-card`):** chips de estado arriba (pausada, en curso, último resultado), una lista de definición con "Se respalda", "Copias en" (rutas completas, `.path-list`) y "Cuándo", y dos botones: **Ejecutar ahora** y **Editar**.
+- **Formulario de proyecto (`.project-editor`):** una sola página en grupos (`.editor-group`): nombre, "Qué respaldar" (filas de disco + carpeta + "Elegir carpeta"), "Dónde guardar las copias" (un disco por fila, con la ruta que tendrá cada copia), "Cuándo" con la frase del horario y "Avanzado" plegado. El botón principal es "Revisar y guardar" y abre la previsualización; nada se guarda sin confirmar.
+- **Zona de cuidado (`.danger-zone`):** al final del formulario, separada por un borde rojo suave, con las acciones que borran en las copias o quitan el proyecto. Solo aparece al editar.
+- **Página de configuración:** secciones con título (`.settings-section`) y filas etiqueta-valor-acción (`.settings-row`), como en las preferencias del sistema. Lo técnico (carpeta de datos, registros, dirección del servicio) va en "Avanzado".
 
 ## Accesibilidad e interacción
 

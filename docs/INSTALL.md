@@ -59,19 +59,23 @@ Durante la instalación se registran las dos tareas y se crean `C:\ProgramData\C
 Esta es la primera vez que Custodio lee discos reales: las pruebas automáticas usan siempre discos simulados. Antes de confiarle tus archivos importantes:
 
 1. En **Discos**, pulsa **Buscar discos** y revisa que estén todos con su nombre, tamaño y espacio libre.
-2. Crea un proyecto de prueba: una carpeta con pocos archivos en un disco ("Guardar archivos") y un disco o pendrive de sobra como "Copia de seguridad".
-3. En **Respaldos**, usa **Ejecutar ahora** y revisa que la copia aparezca en el disco de destino.
-4. Cuando todo cuadre, agrega tus carpetas reales.
+2. En **Proyectos**, pulsa **Nuevo proyecto** y arma uno de prueba: una carpeta con pocos archivos en **Qué respaldar** y un disco o pendrive de sobra en **Dónde guardar las copias**. **Revisar y guardar** muestra lo que va a pasar antes de guardarlo.
+3. En **Respaldos**, usa **Ejecutar ahora** y revisa que la copia aparezca en el disco de respaldo, en la misma ruta que el original.
+4. Cuando todo cuadre, crea tus proyectos reales.
+
+**Proyectos.** Cada proyecto es un nombre, una o más carpetas, uno o más discos de respaldo y un horario. Por ejemplo, «Localcloud» respalda `D:\lc\prod` en `E:`, y «Proyecto 1» respalda `C:\proyecto1\dev\fotos` en `D:` y en `E:`. Cada copia queda en la misma ruta que su original (`D:\lc\prod` → `E:\lc\prod`), así que si un disco falla, el de respaldo lo reemplaza sin cambiar nada. Una carpeta solo puede estar en un proyecto. Todo se cambia desde **Editar** en la tarjeta del proyecto, y **Eliminar proyecto** solo hace que Custodio deje de respaldarlo: no borra ningún archivo.
 
 Custodio nunca borra en el origen. Solo borra copias en los destinos si lo ordenas tú: con el modo espejo, con "Borrar de las copias" (ambos con vista previa) o con la papelera.
 
-**Lo que se borra del original.** Por defecto se queda en la copia para siempre, así que la copia solo crece. Si en el disco de origen se borra mucho (por ejemplo, el de LocalCloud, que descarta los originales de las películas y purga lo que ya nadie usa), elige **Pasa a la papelera de la copia y se elimina después de unos días**. Está en **Avanzado** al crear la copia programada, y en **Cambiar qué pasa con lo borrado** en su tarjeta. El **límite** (10 % por defecto) detiene una copia que fuera a quitar de una vez más archivos que eso, sin borrar nada. Si te pasa con algo que sí borraste a propósito, súbelo ahí mismo y vuelve a ejecutarla.
+**Lo que se borra del original.** Por defecto se queda en la copia para siempre, así que la copia solo crece. Si en el disco de origen se borra mucho (por ejemplo, el de LocalCloud, que descarta los originales de las películas y purga lo que ya nadie usa), elige **Pasa a la papelera de la copia y se elimina después de unos días**. Está en **Avanzado**, dentro de **Editar** del proyecto. La papelera y el espejo tratan como borrado todo lo que esté dentro de la carpeta de copia y no en el original, así que no guardes otras cosas ahí. El **límite** (10 % por defecto) detiene una copia que fuera a quitar de una vez más archivos que eso, sin borrar nada. Si te pasa con algo que sí borraste a propósito, súbelo en ese mismo lugar y vuelve a ejecutarla.
 
 **Discos en una caja USB.** Si la caja no deja leer la salud con el modo normal, Custodio lo reintenta con el modo SAT, el que usan la mayoría de las cajas. Dos discos de la misma caja que reportan el mismo número de serie se distinguen por su posición en la caja. Una vez usados en un proyecto, también por el índice que Custodio deja en cada uno (`.diskmanager\index.json`), aunque la caja los numere distinto después de reiniciar.
 
 ## Actualizar
 
 Ejecuta el instalador de la versión nueva. Detiene el servicio y el helper, reemplaza los archivos y los vuelve a registrar. Tus proyectos, copias programadas e historial se mantienen.
+
+**De 0.2 a 0.3.** Los proyectos creados antes siguen copiando donde lo hacían (por ejemplo, `E:\Copias de Custodio`). Al guardarlos con **Editar**, sus copias pasan a la misma ruta que el original. La carpeta antigua no se borra: el plan lo avisa, y la puedes borrar tú cuando la primera copia nueva termine bien. Lo que ya esté en la ruta nueva con el mismo contenido se reconoce sin copiarlo de nuevo.
 
 ## Desinstalar
 
