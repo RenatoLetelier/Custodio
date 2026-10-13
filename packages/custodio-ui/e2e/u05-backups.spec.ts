@@ -24,7 +24,14 @@ test('U5 se crea una copia programada sin escribir cron, muestra la próxima eje
   await expect(form.getByTestId('schedule-preview')).toHaveText('Los lunes, miércoles y viernes a las 03:00')
   expect(await form.innerText()).not.toMatch(/cron|\* \*/i)
   await captureEvidence(page, 'U5-nueva-copia')
+  // Reviewing big folders can take minutes: while it lasts, the form says so
+  await page.route('**/v1/setups', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    await route.continue()
+  })
   await form.getByRole('button', { name: es.projects.editor.review }).click()
+  await expect(form.getByRole('status')).toHaveText(es.common.measuring)
+  await expect(form.getByRole('button', { name: es.projects.editor.checking })).toBeVisible()
   await expect(page.getByRole('dialog')).toContainText(es.projects.editor.scheduleLine.replace('{schedule}', 'Los lunes, miércoles y viernes a las 03:00'))
   await page.getByRole('dialog').getByRole('button', { name: es.projects.editor.confirm }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)

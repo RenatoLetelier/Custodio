@@ -65,7 +65,8 @@
     "percent": "{value} %",
     "seconds": "{count} s",
     "minutes": "{count} min",
-    "hours": "{count} h"
+    "hours": "{count} h",
+    "measuring": "Comprobando que todo cabe en los discos de respaldo. Si las carpetas son muy grandes, puede tardar unos minutos."
   },
   "units": {
     "bytes": "{value} {unit}",

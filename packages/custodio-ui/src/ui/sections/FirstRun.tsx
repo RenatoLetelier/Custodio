@@ -206,6 +206,11 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
               <li>{t('wizard.summary.safe')}</li>
             </ul>
             {error !== null && <ErrorNotice error={error} />}
+            {busy && (
+              <p className="muted" role="status">
+                {t('common.measuring')}
+              </p>
+            )}
             <div className="actions">
               <button type="button" className="btn" onClick={() => setStep('disks')} disabled={busy}>
                 {t('common.back')}

@@ -366,6 +366,11 @@ export function ProjectEditor({ project, diskId, onDone }: { project: ProjectVie
         </Disclosure>
 
         {error !== null && <ErrorNotice error={error} />}
+        {busy && (
+          <p className="muted" role="status">
+            {t('common.measuring')}
+          </p>
+        )}
         <div className="actions">
           <button type="button" className="btn" onClick={onDone} disabled={busy}>
             {t('common.cancel')}
