@@ -11,7 +11,7 @@ import { createServices, type Services } from './core/services.js'
 import { SqliteIdempotencyStore } from './db/idempotency.js'
 import { SqliteStore } from './db/store.js'
 
-export const SERVICE_VERSION = '0.2.0'
+export const SERVICE_VERSION = '0.2.1'
 
 export interface Adapters {
   clock: Clock
