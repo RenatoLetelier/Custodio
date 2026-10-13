@@ -106,10 +106,8 @@ export class ProjectSetupService {
       const disk = store.disks.get(diskId)
       if (!disk) throw notFound('el disco', diskId)
       for (const source of sources) {
-        if (source.diskId === diskId) {
-          throw new DomainError('validation_failed', `${displayFolder(disk, source.folder)} se respaldaría en su mismo disco. Elige otro disco para las copias.`)
-        }
-        assertFree(this.core, diskId, source.folder, projectId)
+        // A copy on its own disk is reported by the topology check, with the rest of what is wrong
+        if (source.diskId !== diskId) assertFree(this.core, diskId, source.folder, projectId)
         const kept = current.find((a) => a.role === 'backup' && a.diskId === diskId && a.folder === source.folder && a.mirrorOf === source.id)
         assignments.push(kept ?? { id: this.core.newId(), projectId: projectId ?? '', diskId, folder: source.folder, role: 'backup', label: label(source.label), createdAt: now, mirrorOf: source.id })
       }
