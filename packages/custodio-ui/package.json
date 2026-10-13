@@ -1,7 +1,7 @@
 {
   "name": "custodio-ui",
   "productName": "Custodio",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "description": "Aplicación de escritorio de Custodio",
   "author": "Renato Letelier",
