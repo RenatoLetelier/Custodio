@@ -5,6 +5,7 @@ import type { Disk, Plan, ProjectView, Role } from '../api/types'
 import { EmptyState, ErrorNotice, Semaphore } from '../components/ui'
 import { t, type MessageKey } from '../i18n'
 import { formatBytes, formatList } from '../i18n/format'
+import { diskName } from '../lib/disks'
 import { DEFAULT_SCHEDULE, systemTimeZone, toCron } from '../lib/schedule'
 import { useAppState } from '../state/AppState'
 
@@ -21,16 +22,23 @@ function presetChoices(preset: Preset, disks: Disk[]): Record<string, Choice> {
   return Object.fromEntries(disks.map((disk, index) => [disk.id, index === 0 ? 'storage' : index <= copies ? 'backup' : 'none']))
 }
 
+// The project an attempt left half done (it stopped before its copy existed): the assistant resumes it
+export function unfinishedSetup(projects: ProjectView[]): ProjectView | null {
+  const own = projects.find((p) => p.project.name === t('wizard.projectName'))
+  return projects.length === 1 && own && own.policies.length === 0 ? own : null
+}
+
 export function FirstRun({ onLater }: { onLater: () => void }) {
-  const { disks, refresh } = useAppState()
-  const usable = useMemo(() => disks.filter((d) => d.connected && d.state === 'unassigned'), [disks])
+  const { disks, projects, refresh } = useAppState()
+  const left = unfinishedSetup(projects)
+  const usable = useMemo(() => disks.filter((d) => d.connected && (d.state === 'unassigned' || left?.assignments.some((a) => a.diskId === d.id))), [disks, left])
   const [step, setStep] = useState<Step>('welcome')
   const [preset, setPreset] = useState<Preset>('oneCopy')
   const [choices, setChoices] = useState<Record<string, Choice>>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
 
-  const choiceOf = (disk: Disk): Choice => choices[disk.id] ?? presetChoices(preset, usable)[disk.id] ?? 'none'
+  const choiceOf = (disk: Disk): Choice => choices[disk.id] ?? left?.assignments.find((a) => a.diskId === disk.id)?.role ?? presetChoices(preset, usable)[disk.id] ?? 'none'
   const withRole = (role: Choice) => usable.filter((d) => choiceOf(d) === role)
   const valid = withRole('storage').length > 0 && withRole('backup').length > 0
   const risky = usable.some((d) => d.health === 'red' && choiceOf(d) !== 'none')
@@ -55,21 +63,30 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
     setBusy(true)
     setError(null)
     try {
-      const created = await api<ProjectView>('POST', '/v1/projects', { name: t('wizard.projectName') })
-      const projectId = created.project.id
-      const actions = usable
-        .filter((d) => choiceOf(d) !== 'none')
-        .map((d) => ({ type: 'add_assignment', diskId: d.id, folder: choiceOf(d) === 'storage' ? '' : t('wizard.backupFolder'), role: choiceOf(d) }))
-      const { plan } = await api<{ plan: Plan }>('POST', `/v1/projects/${projectId}/plans`, { actions })
-      await api('POST', `/v1/plans/${plan.id}/confirm`, { confirm: true })
+      // Every step can be repeated: a project or disks left by an earlier attempt are reused, never doubled
+      const current = unfinishedSetup((await api<{ projects: ProjectView[] }>('GET', '/v1/projects')).projects)
+      const projectId = current?.project.id ?? (await api<ProjectView>('POST', '/v1/projects', { name: t('wizard.projectName') })).project.id
+      const kept = (current?.assignments ?? []).filter((a) => usable.some((d) => d.id === a.diskId))
+      const actions = [
+        ...kept.filter((a) => choiceOf(usable.find((d) => d.id === a.diskId)!) !== a.role).map((a) => ({ type: 'remove_assignment', assignmentId: a.id })),
+        ...usable
+          .filter((d) => choiceOf(d) !== 'none' && !kept.some((a) => a.diskId === d.id && a.role === choiceOf(d)))
+          .map((d) => ({ type: 'add_assignment', diskId: d.id, folder: choiceOf(d) === 'storage' ? '' : t('wizard.backupFolder'), role: choiceOf(d) }))
+      ]
+      if (actions.length > 0) {
+        const { plan } = await api<{ plan: Plan }>('POST', `/v1/projects/${projectId}/plans`, { actions })
+        await api('POST', `/v1/plans/${plan.id}/confirm`, { confirm: true })
+      }
       const view = await api<ProjectView>('GET', `/v1/projects/${projectId}`)
-      await api('POST', `/v1/projects/${projectId}/policies`, {
-        name: t('wizard.policyName'),
-        sources: view.assignments.filter((a) => a.role === 'storage').map((a) => a.id),
-        destinations: view.assignments.filter((a) => a.role === 'backup').map((a) => a.id),
-        cron: toCron(DEFAULT_SCHEDULE),
-        timezone: systemTimeZone()
-      })
+      if (view.policies.length === 0) {
+        await api('POST', `/v1/projects/${projectId}/policies`, {
+          name: t('wizard.policyName'),
+          sources: view.assignments.filter((a) => a.role === 'storage').map((a) => a.id),
+          destinations: view.assignments.filter((a) => a.role === 'backup').map((a) => a.id),
+          cron: toCron(DEFAULT_SCHEDULE),
+          timezone: systemTimeZone()
+        })
+      }
       await refresh()
     } catch (e) {
       setError(e)
@@ -77,7 +94,7 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
     }
   }
 
-  const names = (list: Disk[]) => formatList(list.map((d) => d.model))
+  const names = (list: Disk[]) => formatList(list.map(diskName))
   const stepNumber = STEPS.indexOf(step) + 1
 
   return (
@@ -124,7 +141,7 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
                 type="button"
                 className="btn btn--primary"
                 onClick={() => {
-                  if (Object.keys(choices).length === 0) setChoices(presetChoices(preset, usable))
+                  if (Object.keys(choices).length === 0) setChoices(Object.fromEntries(usable.map((d) => [d.id, choiceOf(d)])))
                   setStep('disks')
                 }}
               >
@@ -155,11 +172,11 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
                     <div id={domId('choice', disk.id)} className="disk-choice__name">
                       <Semaphore status={disk.health} />
                       <span className="disk-choice__text">
-                        <span>{disk.model}</span>
+                        <span>{diskName(disk)}</span>
                         <span className="disk-choice__size">{formatBytes(disk.sizeBytes)}</span>
                       </span>
                     </div>
-                    <div className="segmented" role="radiogroup" aria-label={t('wizard.disks.roleFor', { disk: disk.model })}>
+                    <div className="segmented" role="radiogroup" aria-label={t('wizard.disks.roleFor', { disk: diskName(disk) })}>
                       {CHOICES.map((choice) => (
                         <label key={choice} className={cn('segmented__item', choiceOf(disk) === choice && 'segmented__item--active')}>
                           <input

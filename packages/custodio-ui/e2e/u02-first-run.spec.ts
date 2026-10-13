@@ -72,3 +72,42 @@ test('U2 asistente de primer uso: detecta los discos, elige su uso con presets y
   expect(disks.find((d: any) => d.model === 'Toshiba Canvio 1 TB').state).toBe('unassigned')
   await captureEvidence(page, 'U2-5-listo')
 })
+
+test.describe('si confirmar falla a mitad', () => {
+  test.use({
+    scenario: {
+      disks: [
+        { name: 'datos', model: 'TerraMas TDAS', serial: 'TDAS-1', sizeGB: 2000, files: { 'Fotos/a.jpg': 'una foto que no cabe' }, usage: { totalBytes: 2000 * GB, freeBytes: 1000 * GB } },
+        { name: 'respaldo', model: 'TerraMas TDAS', serial: 'TDAS-2', sizeGB: 2000, usage: { totalBytes: 2000 * GB, freeBytes: 5 } }
+      ]
+    }
+  })
+
+  test('U2 si confirmar falla a mitad, dice por qué y al volver se retoma sin duplicar el proyecto', async ({ page, service }) => {
+    const toSummary = async () => {
+      await page.getByRole('button', { name: es.wizard.welcome.start }).click()
+      await page.getByRole('button', { name: es.common.next }).click()
+      await page.getByRole('button', { name: es.common.next }).click()
+      await expect(page.getByTestId('wizard')).toHaveAttribute('data-step', 'summary')
+    }
+    await openApp(page, service)
+    await toSummary()
+    await page.getByRole('button', { name: es.wizard.summary.confirm }).click()
+    await expect(page.getByTestId('error-notice')).toContainText('no tiene espacio para todo lo que debe copiar: hacen falta 20 B y hay 5 B disponibles.')
+    await captureEvidence(page, 'U2-6-sin-espacio')
+
+    // The app opens again with the setup half done: the assistant comes back instead of the overview
+    await page.reload()
+    await expect(page.getByTestId('wizard')).toHaveAttribute('data-step', 'welcome')
+    await toSummary()
+    await service.sim('/disks/update', { devicePath: service.device('respaldo'), mountPath: service.diskPath('respaldo'), usage: { totalBytes: 2000 * GB, freeBytes: 1500 * GB } })
+    await page.getByRole('button', { name: es.wizard.summary.confirm }).click()
+    await expect(page.getByTestId('overview-status')).toBeVisible()
+
+    const { projects } = await service.api('GET', '/v1/projects')
+    expect(projects).toHaveLength(1)
+    expect(projects[0].project.name).toBe(es.wizard.projectName)
+    expect(projects[0].assignments.map((a: { role: string }) => a.role).sort()).toEqual(['backup', 'storage'])
+    expect(projects[0].policies).toHaveLength(1)
+  })
+})

@@ -5,7 +5,7 @@ import { formatBytes, formatDateTime, formatRelative } from '../i18n/format'
 import { suggestions, type Suggestion } from '../lib/disks'
 import { useFirstRun, useNavigate, type SectionId } from '../navigation'
 import { useAppState } from '../state/AppState'
-import { FirstRun } from './FirstRun'
+import { FirstRun, unfinishedSetup } from './FirstRun'
 
 const SUGGESTION_TARGET: Record<Suggestion, SectionId> = {
   configure: 'overview',
@@ -23,7 +23,7 @@ export function Overview() {
   const navigate = useNavigate()
   const { postponed, setPostponed } = useFirstRun()
 
-  if (projects.length === 0 && !postponed) return <FirstRun onLater={() => setPostponed(true)} />
+  if ((projects.length === 0 || unfinishedSetup(projects)) && !postponed) return <FirstRun onLater={() => setPostponed(true)} />
   if (!overview) return null
 
   if (projects.length === 0) {
