@@ -95,6 +95,7 @@ Se conservan:
 | Salud "desconocida" | Falta smartmontools, o el disco está en una caja USB que no deja leer SMART. Instala smartmontools y pulsa **Buscar discos**. No hace falta reiniciar. |
 | El instalador avisó que no pudo registrar el servicio | Vuelve a ejecutarlo como administrador. Si se repite, ejecuta a mano `C:\Program Files\Custodio\resources\service\install-tasks.ps1 -ServiceDir "C:\Program Files\Custodio\resources\service"` desde un PowerShell de administrador y revisa el error. |
 | El asistente dice que el disco de la copia «no tiene espacio» | El mensaje dice cuánto hace falta y cuánto hay. Libera espacio en ese disco (por ejemplo, una copia vieja hecha por otro programa) y vuelve a **Confirmar y empezar**: el asistente retoma lo que quedó hecho, sin duplicar nada. |
+| **Revisar y guardar** se queda un rato en «Revisando…» | Custodio mide cuánto ocupan las carpetas para comprobar que caben en los discos de respaldo. Solo lo hace cuando el espacio libre no alcanza a simple vista, y con carpetas de cientos de miles de archivos tarda unos minutos. No cambia nada mientras tanto: espera sin cerrar ni volver a pulsar. |
 | Otra cuenta de Windows abre Custodio y no conecta | Es esperado: el servicio pertenece a la cuenta que instaló y solo esa cuenta puede leer su token. |
 
 La salud se vuelve a revisar sola cada seis horas, y también cuando pulsas **Buscar discos**. Cada revisión puede despertar los discos que estén en reposo; por eso no es más frecuente.
