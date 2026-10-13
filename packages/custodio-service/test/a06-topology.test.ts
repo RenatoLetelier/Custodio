@@ -53,6 +53,35 @@ describe('topologías', () => {
     expect(validateTopology({ assignments, policies: [policy('p', ['a'], ['c'])], disks, sizes }).valid).toBe(true)
   })
 
+  it('A6 las carpetas de copia de un mismo disco comparten su espacio libre', () => {
+    const assignments = [
+      assignment('fotos', 'd1', 'storage', 'Fotos'),
+      assignment('videos', 'd1', 'storage', 'Videos'),
+      { ...assignment('copiaFotos', 'd3', 'backup', 'Fotos'), label: 'Copia de Fotos', mirrorOf: 'fotos' },
+      { ...assignment('copiaVideos', 'd3', 'backup', 'Videos'), label: 'Copia de Videos', mirrorOf: 'videos' }
+    ]
+    const policies = [policy('p', ['fotos', 'videos'], ['copiaFotos', 'copiaVideos'])]
+    // 500 GB free on the disk; the copy of Fotos already holds 100 GB
+    const sizes = (videos: number) => ({
+      sourceBytes: new Map([
+        ['fotos', 300 * GB],
+        ['videos', videos * GB]
+      ]),
+      destinationCapacity: new Map([
+        ['copiaFotos', 600 * GB],
+        ['copiaVideos', 500 * GB]
+      ]),
+      destinationUsed: new Map([
+        ['copiaFotos', 100 * GB],
+        ['copiaVideos', 0]
+      ])
+    })
+    const tooMuch = validateTopology({ assignments, policies, disks, sizes: sizes(400) })
+    expect(codes(tooMuch)).toEqual(['insufficient_capacity'])
+    expect(tooMuch.errors[0]?.message).toBe('"Copia de Fotos" y "Copia de Videos" están en el mismo disco y no caben juntas: hacen falta 700 GB y hay 600 GB disponibles.')
+    expect(validateTopology({ assignments, policies, disks, sizes: sizes(300) }).valid).toBe(true)
+  })
+
   it('A6 el aviso de falta de espacio dice cuánto hace falta y cuánto hay disponible', () => {
     const assignments = [assignment('a', 'd1', 'storage'), assignment('c', 'd3', 'backup')]
     const sizes = { sourceBytes: new Map([['a', 1_234 * GB]]), destinationCapacity: new Map([['c', 850 * GB]]) }

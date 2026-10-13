@@ -35,6 +35,8 @@ export interface TopologySizes {
   sourceBytes: Map<string, number>
   // Bytes a destination can hold: free space plus what its folder already uses
   destinationCapacity: Map<string, number>
+  // What each destination folder already uses (part of its capacity)
+  destinationUsed?: Map<string, number>
 }
 
 export interface TopologyInput {
@@ -118,18 +120,31 @@ export function validateTopology({ assignments, policies, disks, sizes }: Topolo
   }
 
   if (sizes) {
-    for (const destinationId of asDestination) {
-      const capacity = sizes.destinationCapacity.get(destinationId)
-      if (capacity === undefined) continue
-      const feeding = [...edges.entries()].filter(([, targets]) => targets.has(destinationId)).map(([source]) => source)
-      const needed = feeding.reduce((sum, id) => sum + (sizes.sourceBytes.get(id) ?? 0), 0)
-      if (needed > capacity) {
-        errors.push({
-          code: 'insufficient_capacity',
-          assignmentId: destinationId,
-          message: `"${byId.get(destinationId)?.label ?? destinationId}" no tiene espacio para todo lo que debe copiar: hacen falta ${readableBytes(needed)} y hay ${readableBytes(capacity)} disponibles.`
-        })
-      }
+    // Destination folders on the same disk share its free space
+    const byDisk = new Map<string, string[]>()
+    for (const id of asDestination) {
+      const diskId = byId.get(id)?.diskId
+      if (diskId === undefined || !sizes.destinationCapacity.has(id)) continue
+      byDisk.set(diskId, [...(byDisk.get(diskId) ?? []), id])
+    }
+    const used = (id: string): number => sizes.destinationUsed?.get(id) ?? 0
+    const needs = (id: string): number =>
+      [...edges.entries()].filter(([, targets]) => targets.has(id)).reduce((sum, [source]) => sum + (sizes.sourceBytes.get(source) ?? 0), 0)
+    for (const ids of byDisk.values()) {
+      const free = Math.min(...ids.map((id) => sizes.destinationCapacity.get(id)! - used(id)))
+      const capacity = free + ids.reduce((sum, id) => sum + used(id), 0)
+      const needed = ids.reduce((sum, id) => sum + needs(id), 0)
+      if (needed <= capacity) continue
+      const labels = ids.map((id) => `"${byId.get(id)?.label ?? id}"`)
+      const amounts = `hacen falta ${readableBytes(needed)} y hay ${readableBytes(capacity)} disponibles.`
+      errors.push({
+        code: 'insufficient_capacity',
+        assignmentId: ids[0],
+        message:
+          labels.length === 1
+            ? `${labels[0]} no tiene espacio para todo lo que debe copiar: ${amounts}`
+            : `${labels.slice(0, -1).join(', ')} y ${labels.at(-1)} están en el mismo disco y no caben juntas: ${amounts}`
+      })
     }
   }
 

@@ -65,6 +65,7 @@ export class ProjectService {
   async measure(assignments: Assignment[], policies: TopologyPolicy[]): Promise<TopologySizes> {
     const sourceBytes = new Map<string, number>()
     const destinationCapacity = new Map<string, number>()
+    const destinationUsed = new Map<string, number>()
     const byId = new Map(assignments.map((a) => [a.id, a]))
     const sources = new Set(policies.flatMap((p) => p.sources))
     const destinations = new Set(policies.flatMap((p) => p.destinations))
@@ -80,8 +81,10 @@ export class ProjectService {
       if (!assignment || !disk?.connected || !disk.mountPath) continue
       const usage = await this.core.volumes.usage(disk.mountPath)
       if (!usage) continue
-      destinationCapacity.set(id, usage.freeBytes + ((await this.folderBytes(assignment)) ?? 0))
+      const inFolder = (await this.folderBytes(assignment)) ?? 0
+      destinationUsed.set(id, inFolder)
+      destinationCapacity.set(id, usage.freeBytes + inFolder)
     }
-    return { sourceBytes, destinationCapacity }
+    return { sourceBytes, destinationCapacity, destinationUsed }
   }
 }
