@@ -63,7 +63,11 @@ Esta es la primera vez que Custodio lee discos reales: las pruebas automáticas 
 3. En **Respaldos**, usa **Ejecutar ahora** y revisa que la copia aparezca en el disco de destino.
 4. Cuando todo cuadre, agrega tus carpetas reales.
 
-Custodio nunca borra en el origen. Solo borra copias en los destinos si lo ordenas tú, después de una vista previa (modo espejo, retención o "Borrar de las copias").
+Custodio nunca borra en el origen. Solo borra copias en los destinos si lo ordenas tú: con el modo espejo, con "Borrar de las copias" (ambos con vista previa) o con la papelera.
+
+**Lo que se borra del original.** Por defecto se queda en la copia para siempre, así que la copia solo crece. Si en el disco de origen se borra mucho (por ejemplo, el de LocalCloud, que descarta los originales de las películas y purga lo que ya nadie usa), elige **Pasa a la papelera de la copia y se elimina después de unos días**. Está en **Avanzado** al crear la copia programada, y en **Cambiar qué pasa con lo borrado** en su tarjeta. El **límite** (10 % por defecto) detiene una copia que fuera a quitar de una vez más archivos que eso, sin borrar nada. Si te pasa con algo que sí borraste a propósito, súbelo ahí mismo y vuelve a ejecutarla.
+
+**Discos en una caja USB.** Si la caja no deja leer la salud con el modo normal, Custodio lo reintenta con el modo SAT, el que usan la mayoría de las cajas. Dos discos de la misma caja que reportan el mismo número de serie se distinguen por su posición en la caja. Una vez usados en un proyecto, también por el índice que Custodio deja en cada uno (`.diskmanager\index.json`), aunque la caja los numere distinto después de reiniciar.
 
 ## Actualizar
 

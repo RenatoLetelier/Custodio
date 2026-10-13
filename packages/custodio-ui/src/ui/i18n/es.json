@@ -357,9 +357,23 @@
       "windowHint": "Si eliges un horario, las copias solo se hacen dentro de él.",
       "windowStart": "Desde",
       "windowEnd": "Hasta",
+      "deleted": "Lo que se borra del original",
+      "deletedMode": {
+        "append": "Se queda en la copia para siempre",
+        "retention": "Pasa a la papelera de la copia y se elimina después de unos días"
+      },
+      "retentionDays": "Días en la papelera",
+      "retentionHint": "Así la copia no guarda para siempre lo que ya no está en el original. Si una copia fuera a quitar de una vez más archivos que el límite de abajo, se detiene sin borrar nada.",
+      "maxDelete": "Límite: porcentaje de archivos de la copia que puede quitar de una vez",
       "submit": "Crear copia programada"
     },
     "paused": "En pausa",
+    "retentionNote": "Lo que se borra del original queda {days} días en la papelera de la copia.",
+    "deleted": {
+      "button": "Cambiar qué pasa con lo borrado",
+      "title": "Lo que se borra del original en «{name}»",
+      "save": "Guardar"
+    },
     "mode": {
       "append": "Solo agrega",
       "retention": "Con papelera",

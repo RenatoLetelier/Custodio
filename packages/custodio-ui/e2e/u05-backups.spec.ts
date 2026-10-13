@@ -1,6 +1,6 @@
 import es from '../src/ui/i18n/es.json'
 import { captureEvidence } from './evidence'
-import { expect, goTo, openApp, test } from './support/fixtures'
+import { expect, expectAccessible, expectTextsFromCatalog, goTo, openApp, test } from './support/fixtures'
 
 test('U5 se crea una copia programada sin escribir cron, muestra la próxima ejecución y permite ejecutar ahora y pausar', async ({ page, service }) => {
   const { projectId } = await service.project('Familia', [
@@ -49,4 +49,52 @@ test('U5 se crea una copia programada sin escribir cron, muestra la próxima eje
   await expect(card.getByText(es.backups.paused, { exact: true })).toHaveCount(0)
   expect((await service.api('GET', `/v1/policies/${policy.id}`)).paused).toBe(false)
   await captureEvidence(page, 'U5-respaldos')
+})
+
+test('U5 en Avanzado se elige que lo borrado del original pase a la papelera de la copia unos días', async ({ page, service }) => {
+  const { projectId } = await service.project('LocalCloud', [
+    { disk: 'principal', folder: 'Datos', role: 'storage', label: 'Datos' },
+    { disk: 'copia', folder: 'Copias', role: 'backup', label: 'Respaldo' }
+  ])
+  await openApp(page, service)
+  await goTo(page, es.nav.backups)
+  await page.getByRole('button', { name: es.backups.empty.action }).click()
+
+  const form = page.getByTestId('policy-form')
+  await form.getByRole('button', { name: es.backups.form.advanced }).click()
+  await expect(form.getByRole('radio', { name: es.backups.form.deletedMode.append })).toBeChecked()
+  await expect(form.getByLabel(es.backups.form.retentionDays)).toHaveCount(0)
+  await form.getByRole('radio', { name: es.backups.form.deletedMode.retention }).check()
+  await form.getByLabel(es.backups.form.retentionDays).fill('0')
+  await expect(form.getByRole('button', { name: es.backups.form.submit })).toBeDisabled()
+  await form.getByLabel(es.backups.form.retentionDays).fill('45')
+  await expect(form.getByLabel(es.backups.form.maxDelete)).toHaveValue('10')
+  await expectAccessible(page)
+  await expectTextsFromCatalog(page)
+  await captureEvidence(page, 'U5-papelera')
+  await form.getByRole('button', { name: es.backups.form.submit }).click()
+
+  const card = page.getByTestId('policy-card')
+  await expect(card.getByText(es.backups.mode.retention, { exact: true })).toBeVisible()
+  await expect(card.getByTestId('policy-retention')).toHaveText(es.backups.retentionNote.replace('{days}', '45'))
+  const [policy] = (await service.api('GET', `/v1/projects/${projectId}`)).policies
+  expect(policy).toMatchObject({ mode: 'retention', retentionDays: 45, maxDeletePercent: 10 })
+
+  // A copy already created changes it from its card: a larger limit, and back to keeping everything
+  await card.getByRole('button', { name: es.backups.deleted.button }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('radio', { name: es.backups.form.deletedMode.retention })).toBeChecked()
+  await dialog.getByLabel(es.backups.form.maxDelete).fill('25')
+  await expectAccessible(page)
+  await expectTextsFromCatalog(page)
+  await dialog.getByRole('button', { name: es.backups.deleted.save }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(await service.api('GET', `/v1/policies/${policy.id}`)).toMatchObject({ mode: 'retention', retentionDays: 45, maxDeletePercent: 25 })
+
+  await card.getByRole('button', { name: es.backups.deleted.button }).click()
+  await page.getByRole('dialog').getByRole('radio', { name: es.backups.form.deletedMode.append }).check()
+  await page.getByRole('dialog').getByRole('button', { name: es.backups.deleted.save }).click()
+  await expect(card.getByText(es.backups.mode.retention, { exact: true })).toHaveCount(0)
+  await expect(card.getByTestId('policy-retention')).toHaveCount(0)
+  expect((await service.api('GET', `/v1/policies/${policy.id}`)).mode).toBe('append')
 })
