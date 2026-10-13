@@ -5,9 +5,11 @@ import { basename, dirname, join } from 'node:path'
 import type { FileEntry, FileStat, FileSystemPort, WriteHandle } from '../../core/ports/system.js'
 
 const isMissing = (error: unknown): boolean => (error as NodeJS.ErrnoException).code === 'ENOENT'
+const isDenied = (error: unknown): boolean => ['EPERM', 'EACCES'].includes((error as NodeJS.ErrnoException).code ?? '')
 
 export class NodeFileSystem implements FileSystemPort {
-  async *walk(root: string, skipDir?: (relPath: string) => boolean): AsyncIterable<FileEntry> {
+  // Another program may remove files while this runs (finished uploads, temporaries): those are skipped
+  async *walk(root: string, skipDir?: (relPath: string) => boolean, onUnreadable?: (relPath: string, error: Error) => void): AsyncIterable<FileEntry> {
     const pending: string[] = ['']
     while (pending.length > 0) {
       const rel = pending.pop() as string
@@ -16,6 +18,10 @@ export class NodeFileSystem implements FileSystemPort {
         entries = await readdir(join(root, ...rel.split('/').filter(Boolean)), { withFileTypes: true })
       } catch (error) {
         if (isMissing(error)) continue
+        if (rel !== '' && onUnreadable && isDenied(error)) {
+          onUnreadable(rel, error as Error)
+          continue
+        }
         throw error
       }
       for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
@@ -23,7 +29,17 @@ export class NodeFileSystem implements FileSystemPort {
         if (entry.isDirectory()) {
           if (!skipDir?.(childRel)) pending.push(childRel)
         } else if (entry.isFile()) {
-          const info = await stat(join(root, ...childRel.split('/')))
+          let info
+          try {
+            info = await stat(join(root, ...childRel.split('/')))
+          } catch (error) {
+            if (isMissing(error)) continue
+            if (onUnreadable && isDenied(error)) {
+              onUnreadable(childRel, error as Error)
+              continue
+            }
+            throw error
+          }
           yield { relPath: childRel, size: info.size, mtimeMs: Math.floor(info.mtimeMs) }
         }
       }

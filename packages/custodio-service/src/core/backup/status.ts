@@ -38,7 +38,7 @@ export class BackupStatusService {
     if (!found) return { path, source: null, files: 0, bytes: 0, backedUp: false, destinations: [] }
 
     const { assignment, root } = found
-    const files = await this.filesUnder(target, relative(root, target).split(/[\\/]+/).filter(Boolean).join('/'))
+    const { files, unreadable } = await this.filesUnder(target, relative(root, target).split(/[\\/]+/).filter(Boolean).join('/'))
     const destinations: DestinationStatus[] = []
     for (const id of this.destinationsOf(assignment)) {
       const status = await this.destinationStatus(id, assignment, files)
@@ -49,7 +49,8 @@ export class BackupStatusService {
       source: { assignmentId: assignment.id, projectId: assignment.projectId, diskId: assignment.diskId, label: assignment.label },
       files: files.length,
       bytes: files.reduce((sum, f) => sum + f.size, 0),
-      backedUp: destinations.some((d) => d.complete),
+      // A file Custodio cannot read cannot be in any copy
+      backedUp: unreadable === 0 && destinations.some((d) => d.complete),
       destinations
     }
   }
@@ -69,18 +70,19 @@ export class BackupStatusService {
   }
 
   // What a backup would copy from the path: the same files the engine looks at, relative to the storage folder
-  private async filesUnder(target: string, prefix: string): Promise<FileEntry[]> {
+  private async filesUnder(target: string, prefix: string): Promise<{ files: FileEntry[]; unreadable: number }> {
     const { fs } = this.core
     const copyable = (relPath: string): boolean => !isCopierTemp(baseName(relPath)) && !isIncompleteName(baseName(relPath))
     const info = await fs.stat(target)
-    if (!info) return []
-    if (info.isFile) return copyable(prefix) ? [{ relPath: prefix, size: info.size, mtimeMs: info.mtimeMs }] : []
+    if (!info) return { files: [], unreadable: 0 }
+    if (info.isFile) return { files: copyable(prefix) ? [{ relPath: prefix, size: info.size, mtimeMs: info.mtimeMs }] : [], unreadable: 0 }
     const files: FileEntry[] = []
-    for await (const entry of fs.walk(target, isSkippedDir)) {
+    let unreadable = 0
+    for await (const entry of fs.walk(target, isSkippedDir, () => unreadable++)) {
       const relPath = prefix ? `${prefix}/${entry.relPath}` : entry.relPath
       if (copyable(relPath)) files.push({ ...entry, relPath })
     }
-    return files
+    return { files, unreadable }
   }
 
   private destinationsOf(source: Assignment): Set<string> {

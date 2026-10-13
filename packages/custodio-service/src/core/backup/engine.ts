@@ -186,8 +186,15 @@ export class BackupEngine {
           temps: []
         }
         const present = new Set<string>()
+        // What could not be read is reported as failed and its copies are never taken for deleted at the source
+        const unreadable: string[] = []
+        const onUnreadable = (relPath: string, error: Error): void => {
+          unreadable.push(relPath)
+          summary.filesFailed++
+          if (summary.failed.length < LIST_LIMIT) summary.failed.push({ sourceId, path: relPath, code: 'unreadable', message: error.message })
+        }
 
-        for await (const entry of fs.walk(sourceRoot, isSkippedDir)) {
+        for await (const entry of fs.walk(sourceRoot, isSkippedDir, onUnreadable)) {
           present.add(entry.relPath)
           const name = baseName(entry.relPath)
           if (isCopierTemp(name)) continue
@@ -209,7 +216,7 @@ export class BackupEngine {
           }
           const known = store.manifest.get(destinationId, sourceId, entry.relPath)
           const existing = await fs.stat(pathOf(root, entry.relPath))
-          if (known && existing?.isFile && known.size === entry.size && known.mtimeMs === entry.mtimeMs && existing.size === entry.size) {
+          if (known?.sha256 && existing?.isFile && known.size === entry.size && known.mtimeMs === entry.mtimeMs && existing.size === entry.size) {
             summary.filesUpToDate++
             continue
           }
@@ -226,7 +233,7 @@ export class BackupEngine {
             continue
           }
           pair.destinationFiles++
-          if (!present.has(entry.relPath)) pair.deletions.push(entry.relPath)
+          if (!present.has(entry.relPath) && !unreadable.some((u) => entry.relPath === u || entry.relPath.startsWith(`${u}/`))) pair.deletions.push(entry.relPath)
         }
         pairs.push(pair)
       }

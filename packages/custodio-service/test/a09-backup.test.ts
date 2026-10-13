@@ -1,4 +1,5 @@
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AtomicCopier } from '../src/adapters/node/atomic-copier.js'
@@ -200,6 +201,24 @@ describe('respaldo incremental', () => {
     expect(resumed.status).toBe('succeeded')
     expect(resumed.result).toMatchObject({ filesUpToDate: 3, filesCopied: 3 })
     expect(await hashTree(setup.copyRoot)).toEqual(await hashTree(setup.sourceRoot))
+  })
+})
+
+describe('origen que cambia mientras se recorre', () => {
+  it('A9 un archivo que desaparece mientras se recorre el origen no hace fallar la copia', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'custodio-walk-'))
+    try {
+      for (const name of ['a.txt', 'b.txt', 'c.txt']) await writeFile(join(root, name), name)
+      const seen: string[] = []
+      for await (const entry of new NodeFileSystem().walk(root)) {
+        seen.push(entry.relPath)
+        // Another program finishes with a temporary file between the listing and its turn
+        if (entry.relPath === 'a.txt') await rm(join(root, 'b.txt'))
+      }
+      expect(seen).toEqual(['a.txt', 'c.txt'])
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 })
 

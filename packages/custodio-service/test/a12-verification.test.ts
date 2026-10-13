@@ -1,4 +1,4 @@
-import { rm, writeFile } from 'node:fs/promises'
+import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { sha256, simpleSetup } from './support/backup.js'
@@ -37,6 +37,27 @@ describe('verificación periódica', () => {
     const events = h.events('backup.corruption_detected')
     expect(events).toHaveLength(1)
     expect(events[0]?.payload).toMatchObject({ policyId: policy.id, path: 'foto-4.jpg', diskId: h.diskId(setup.destination), jobId: job.id })
+  })
+
+  it('A12 un archivo corrupto deja de contar como respaldado y la copia siguiente lo reemplaza', async () => {
+    h = await createHarness({ random: seeded(7) })
+    const setup = await simpleSetup(h, files(3))
+    const policy = await h.policy(setup.projectId, { sources: [setup.storage.id], destinations: [setup.backup.id] })
+    await h.run(policy.id)
+    const status = async () => (await h.get(`/v1/backups/status?path=${encodeURIComponent(join(setup.sourceRoot, 'foto-1.jpg'))}`)).body
+    expect(await status()).toMatchObject({ backedUp: true })
+
+    await writeFile(join(setup.copyRoot, 'foto-1.jpg'), 'contenidO 1')
+    const check = await h.post(`/v1/policies/${policy.id}/verifications`, { samplePercent: 100 })
+    expect(await h.s.runner.settled(check.body.job.id)).toMatchObject({ status: 'failed' })
+    expect(await status()).toMatchObject({ backedUp: false })
+
+    const repair = await h.run(policy.id)
+    expect(repair.result).toMatchObject({ filesCopied: 1, filesUpToDate: 2 })
+    expect(await readFile(join(setup.copyRoot, 'foto-1.jpg'), 'utf8')).toBe('contenido 1')
+    expect(await status()).toMatchObject({ backedUp: true })
+    const again = await h.post(`/v1/policies/${policy.id}/verifications`, { samplePercent: 100 })
+    expect(await h.s.runner.settled(again.body.job.id)).toMatchObject({ status: 'succeeded', result: { corrupted: [] } })
   })
 
   it('A12 una muestra parcial también encuentra copias desaparecidas', async () => {

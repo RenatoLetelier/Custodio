@@ -86,9 +86,9 @@ export class FaultyFileSystem implements FileSystemPort {
     if (this.dead) throw new SimulatedPowerLoss()
   }
 
-  walk(root: string, skipDir?: (relPath: string) => boolean) {
+  walk(root: string, skipDir?: (relPath: string) => boolean, onUnreadable?: (relPath: string, error: Error) => void) {
     this.alive()
-    return this.inner.walk(root, skipDir)
+    return this.inner.walk(root, skipDir, onUnreadable)
   }
   async stat(path: string) {
     this.alive()

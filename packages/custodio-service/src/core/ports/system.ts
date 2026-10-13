@@ -62,7 +62,8 @@ export interface WriteHandle {
 }
 
 export interface FileSystemPort {
-  walk(root: string, skipDir?: (relPath: string) => boolean): AsyncIterable<FileEntry>
+  // A folder or file it may not read is reported through onUnreadable and skipped; without the callback it throws
+  walk(root: string, skipDir?: (relPath: string) => boolean, onUnreadable?: (relPath: string, error: Error) => void): AsyncIterable<FileEntry>
   stat(path: string): Promise<FileStat | null>
   mkdirp(path: string): Promise<void>
   readDir(path: string): Promise<{ name: string; isDirectory: boolean }[]>

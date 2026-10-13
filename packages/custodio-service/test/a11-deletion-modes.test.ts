@@ -1,6 +1,8 @@
 import { readFile, rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, relative, sep } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import { NodeFileSystem } from '../src/adapters/node/filesystem.js'
+import type { FileEntry } from '../src/core/ports/system.js'
 import { listFiles, simpleSetup } from './support/backup.js'
 import { createHarness, DAY, HOUR, type Harness } from './support/harness.js'
 
@@ -109,5 +111,45 @@ describe('modos con borrado', () => {
     const allowedDry = await h.s.runner.settled(h.s.runner.startBackup(retention.id, { actor: 'tester', dryRun: true }).id)
     expect((await h.run(retention.id, { mirrorDryRunJobId: allowedDry.id })).result).toMatchObject({ filesDeleted: 3 })
     expect(await listFiles(setup.copyRoot)).toHaveLength(17)
+  })
+})
+
+// The real file system, except one folder this account may not read
+class BlindFileSystem extends NodeFileSystem {
+  blind: string | null = null
+
+  override async *walk(root: string, skipDir?: (relPath: string) => boolean, onUnreadable?: (relPath: string, error: Error) => void): AsyncGenerator<FileEntry> {
+    const blind = this.blind
+    const inside = blind ? relative(root, blind).split(sep).join('/') : null
+    let reported = false
+    for await (const entry of super.walk(root, skipDir, onUnreadable)) {
+      if (inside && !inside.startsWith('..') && (entry.relPath === inside || entry.relPath.startsWith(`${inside}/`))) {
+        if (!reported) {
+          const denied = Object.assign(new Error(`EPERM: operation not permitted, scandir '${blind}'`), { code: 'EPERM' })
+          if (!onUnreadable) throw denied
+          onUnreadable(inside, denied)
+          reported = true
+        }
+        continue
+      }
+      yield entry
+    }
+  }
+}
+
+describe('carpetas que no se pueden leer', () => {
+  it('A11 una carpeta del origen que no se puede leer se informa como fallida y sus copias no se toman por borradas', async () => {
+    const blindFs = new BlindFileSystem()
+    h = await createHarness({ fs: () => blindFs })
+    const setup = await simpleSetup(h, { 'a.txt': 'a', 'privado/b.txt': 'b', 'privado/c.txt': 'c' })
+    const policy = await h.policy(setup.projectId, { mode: 'retention', retentionDays: 7, sources: [setup.storage.id], destinations: [setup.backup.id] })
+    expect((await h.run(policy.id)).status).toBe('succeeded')
+
+    blindFs.blind = join(setup.sourceRoot, 'privado')
+    await h.writeFile(setup.source, 'Fotos/nuevo.txt', 'nuevo')
+    const run = await h.run(policy.id)
+    expect(run.status).toBe('failed')
+    expect(run.result).toMatchObject({ filesCopied: 1, filesDeleted: 0, filesFailed: 1, failed: [expect.objectContaining({ path: 'privado', code: 'unreadable' })] })
+    expect(await listFiles(setup.copyRoot)).toEqual(['a.txt', 'nuevo.txt', 'privado/b.txt', 'privado/c.txt'])
   })
 })

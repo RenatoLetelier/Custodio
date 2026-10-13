@@ -1,6 +1,6 @@
 import type { Core } from '../shared/context.js'
 import { DomainError, notFound } from '../shared/errors.js'
-import { META_DIR } from '../shared/files.js'
+import { isSkippedDir } from '../shared/files.js'
 import { assignmentRoot } from '../shared/layout.js'
 import type { Assignment, Policy, Project } from '../shared/model.js'
 import { validateTopology, type TopologyPolicy, type TopologyResult, type TopologySizes } from './topology.js'
@@ -12,7 +12,6 @@ export interface ProjectView {
   topology: TopologyResult
 }
 
-const skipMeta = (relPath: string): boolean => relPath === META_DIR || relPath.endsWith(`/${META_DIR}`)
 
 export class ProjectService {
   constructor(private readonly core: Core) {}
@@ -57,7 +56,8 @@ export class ProjectService {
     const disk = this.core.store.disks.get(assignment.diskId)
     if (!disk?.connected || !disk.mountPath) return null
     let total = 0
-    for await (const entry of this.core.fs.walk(assignmentRoot(disk.mountPath, assignment), skipMeta)) total += entry.size
+    // An estimate for the capacity rule: what this account cannot read is left out, the backup reports it
+    for await (const entry of this.core.fs.walk(assignmentRoot(disk.mountPath, assignment), isSkippedDir, () => undefined)) total += entry.size
     return total
   }
 

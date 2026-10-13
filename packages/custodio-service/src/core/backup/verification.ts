@@ -49,6 +49,8 @@ export class VerificationService {
         const actual = info?.isFile ? await sha256Of(fs, path) : null
         summary.checked++
         if (actual === entry.sha256) continue
+        // Without its verified hash the entry no longer counts as backed up, and the next run copies the file again
+        store.manifest.upsert({ ...entry, sha256: null })
         summary.corrupted.push({ destinationId, sourceId: entry.sourceId, path: entry.relPath, expectedSha256: entry.sha256, actualSha256: actual })
         this.core.events.publish('backup.corruption_detected', {
           jobId,
