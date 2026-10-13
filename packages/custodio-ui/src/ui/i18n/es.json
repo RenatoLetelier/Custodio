@@ -464,7 +464,7 @@
       "action": "Programar un respaldo",
       "toProjects": "Ir a Proyectos"
     },
-    "intro": "Cuándo se copia cada proyecto y cómo salió la última vez. Qué se copia y dónde se cambia en su proyecto.",
+    "intro": "Qué carpetas se copian y en qué discos se elige en cada proyecto, con «Cambiar qué y dónde se copia».",
     "change": "Cambiar qué y dónde se copia"
   },
   "activity": {
