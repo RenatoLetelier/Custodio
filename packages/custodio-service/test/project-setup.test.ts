@@ -63,6 +63,7 @@ describe('proyectos completos', () => {
     const backups = view.assignments.filter((a: any) => a.role === 'backup')
     expect(backups).toHaveLength(4)
     for (const backup of backups) expect(backup.folder).toBe(sources.find((s: any) => s.id === backup.mirrorOf).folder)
+    expect(backups.map((a: any) => a.label).sort()).toEqual(['Copia de LocalProcessor-Photos', 'Copia de LocalProcessor-Photos 2', 'Copia de prod', 'Copia de prod 2'])
     expect(view.policies).toEqual([expect.objectContaining({ cron: '0 3 * * *', sources: sources.map((a: any) => a.id), destinations: backups.map((a: any) => a.id) })])
   })
 

@@ -109,7 +109,7 @@ export class ProjectSetupService {
         // A copy on its own disk is reported by the topology check, with the rest of what is wrong
         if (source.diskId !== diskId) assertFree(this.core, diskId, source.folder, projectId)
         const kept = current.find((a) => a.role === 'backup' && a.diskId === diskId && a.folder === source.folder && a.mirrorOf === source.id)
-        assignments.push(kept ?? { id: this.core.newId(), projectId: projectId ?? '', diskId, folder: source.folder, role: 'backup', label: label(source.label), createdAt: now, mirrorOf: source.id })
+        assignments.push(kept ?? { id: this.core.newId(), projectId: projectId ?? '', diskId, folder: source.folder, role: 'backup', label: label(`Copia de ${source.label}`), createdAt: now, mirrorOf: source.id })
       }
     }
 
