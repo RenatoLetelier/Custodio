@@ -132,6 +132,16 @@ describe('privilegios mínimos', () => {
     }
   })
 
+  it('A19 la lectura SMART de un disco USB puede pedir el modo SAT, y ningún otro tipo de dispositivo', async () => {
+    const runner = new RecordingRunner()
+    const helper = new Helper(runner, SECRET)
+    expect(await helper.handle(request('smart.read', { device: '/dev/pd2', type: 'sat' }))).toMatchObject({ ok: true })
+    for (const type of ['scsi', 'sat,12', 'sat -s on', 'auto']) {
+      expect(await helper.handle(request('smart.read', { device: '/dev/pd2', type })), type).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } })
+    }
+    expect(runner.calls).toEqual([{ file: 'smartctl.exe', args: ['--json=c', '--all', '-d', 'sat', '/dev/pd2'] }])
+  })
+
   it('A19 el helper no busca en PATH las herramientas del sistema', () => {
     const env = { SystemRoot: 'C:\\Windows', ProgramFiles: 'C:\\Program Files' }
     expect(executablePath('powershell.exe', env)).toBe('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe')

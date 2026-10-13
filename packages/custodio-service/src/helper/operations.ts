@@ -31,9 +31,10 @@ export interface Operation<A extends z.ZodType = z.ZodType> {
 const operation = <A extends z.ZodType>(op: Operation<A>): Operation<A> => op
 
 export const OPERATIONS = {
+  // USB enclosures usually answer SMART only through SAT pass-through ("-d sat")
   'smart.read': operation({
-    args: z.object({ device: DevicePathSchema }).strict(),
-    command: (a) => ({ file: 'smartctl.exe', args: ['--json=c', '--all', a.device] }),
+    args: z.object({ device: DevicePathSchema, type: z.literal('sat').optional() }).strict(),
+    command: (a) => ({ file: 'smartctl.exe', args: ['--json=c', '--all', ...(a.type ? ['-d', a.type] : []), a.device] }),
     requiresConfirmation: false
   }),
   'disks.list': operation({

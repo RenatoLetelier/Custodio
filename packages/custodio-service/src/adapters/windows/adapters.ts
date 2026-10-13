@@ -31,7 +31,11 @@ export class WindowsSmartReader implements SmartReader {
 
   async read(devicePath: string): Promise<SmartReading | null> {
     assertRealAdaptersAllowed('WindowsSmartReader')
-    return parseSmartctl(await stdoutOf(this.helper, 'smart.read', { device: devicePath }))
+    const direct = parseSmartctl(await stdoutOf(this.helper, 'smart.read', { device: devicePath }))
+    if (direct?.supported) return direct
+    // Behind a USB bridge the plain read finds nothing; SAT pass-through usually gets the attributes
+    const viaSat = parseSmartctl(await stdoutOf(this.helper, 'smart.read', { device: devicePath, type: 'sat' }).catch(() => ''))
+    return viaSat?.supported ? viaSat : direct
   }
 }
 
