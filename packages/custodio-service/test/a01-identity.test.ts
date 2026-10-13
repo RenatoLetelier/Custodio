@@ -42,4 +42,47 @@ describe('identidad de discos', () => {
     expect(disks[0].id).toBe(id)
     expect(disks[0].mountPath).toBe('G:\\')
   })
+
+  it('A1 dos discos de una misma caja USB que reportan el mismo serial siguen siendo dos discos, con su id en cada lectura', async () => {
+    h = await createHarness()
+    const first = await h.addDisk('datos', { serial: 'JMICRON-BRIDGE' })
+    const second = await h.addDisk('respaldo', { serial: 'JMICRON-BRIDGE' })
+    await h.scan()
+    const ids = [h.diskId(first), h.diskId(second)]
+    expect(new Set(ids).size).toBe(2)
+
+    for (let i = 0; i < 2; i++) {
+      await h.scan()
+      const disks = (await h.get('/v1/disks')).body.disks as { id: string; mountPath: string }[]
+      expect(disks).toHaveLength(2)
+      expect(disks.find((d) => d.id === ids[0])?.mountPath).toBe(first.mountPath)
+      expect(disks.find((d) => d.id === ids[1])?.mountPath).toBe(second.mountPath)
+    }
+    expect(h.events('disk.detected')).toHaveLength(2)
+  })
+
+  it('A1 si la caja USB numera distinto a dos discos con el mismo serial, cada uno se reconoce por el índice que Custodio dejó en él', async () => {
+    h = await createHarness()
+    const first = await h.addDisk('datos', { serial: 'JMICRON-BRIDGE' })
+    const second = await h.addDisk('respaldo', { serial: 'JMICRON-BRIDGE' })
+    await h.scan()
+    const ids = [h.diskId(first), h.diskId(second)]
+    await h.project('Familia', [
+      { disk: first, folder: '', role: 'storage' },
+      { disk: second, folder: 'Copias', role: 'backup' }
+    ])
+
+    // After a reboot the box lists the backup disk first, at the other position
+    const [datos, respaldo] = await h.disks.listDisks()
+    h.disks.remove(first.devicePath)
+    h.disks.remove(second.devicePath)
+    h.disks.add({ ...respaldo!, devicePath: first.devicePath })
+    h.disks.add({ ...datos!, devicePath: second.devicePath })
+    await h.scan()
+
+    const disks = (await h.get('/v1/disks')).body.disks as { id: string; mountPath: string }[]
+    expect(disks).toHaveLength(2)
+    expect(disks.find((d) => d.id === ids[0])?.mountPath).toBe(first.mountPath)
+    expect(disks.find((d) => d.id === ids[1])?.mountPath).toBe(second.mountPath)
+  })
 })

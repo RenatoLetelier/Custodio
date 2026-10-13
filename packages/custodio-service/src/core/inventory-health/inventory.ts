@@ -1,3 +1,4 @@
+import { indexPath, parseIndex } from '../allocation/descriptor.js'
 import type { PhysicalDiskInfo, VolumeUsage } from '../ports/system.js'
 import { SYSTEM_ACTOR, type Core } from '../shared/context.js'
 import type { Disk } from '../shared/model.js'
@@ -49,16 +50,19 @@ export class InventoryService {
     const result: ScanResult = { detected: [], updated: [], disconnected: [], healthChanged: [] }
     const seen = new Set<string>()
     const keys = new Set<string>()
+    const shared = new Set(infos.map(identityKeyOf).filter((key, i, all) => all.indexOf(key) !== i))
 
     for (const info of infos) {
-      let key = identityKeyOf(info)
-      // Cheap USB bridges sometimes report the same serial for every disk
-      if (keys.has(key)) key = `${key}@${info.devicePath}`
+      const base = identityKeyOf(info)
+      // Cheap USB bridges sometimes report the same serial for every disk: the position tells them apart,
+      // and the index Custodio keeps at the root of each disk does even when the box numbers them anew
+      const key = keys.has(base) ? `${base}@${info.devicePath}` : base
       keys.add(key)
+      const hint = shared.has(base) ? await this.diskFromIndex(info, seen) : null
       const reading = await this.core.smart.read(info.devicePath).catch(() => null)
       const usage = info.mountPath ? await this.core.volumes.usage(info.mountPath).catch(() => null) : null
       const evaluation = evaluateHealth(reading)
-      seen.add(this.core.store.transaction(() => this.upsert(info, key, evaluation, usage, result)))
+      seen.add(this.core.store.transaction(() => this.upsert(info, key, evaluation, usage, result, seen, hint)))
     }
 
     const now = this.core.clock.now().toISOString()
@@ -73,17 +77,30 @@ export class InventoryService {
     return result
   }
 
-  private findExisting(info: PhysicalDiskInfo, key: string): Disk | null {
-    const byKey = this.core.store.disks.findByIdentity(key)
-    if (byKey) return byKey
-    return this.core.store.disks.list().find((d) => !d.identityKey.startsWith('device:') && sameDisk(d, info)) ?? null
+  // The disk whose folders are listed in .diskmanager/index.json at this mount, if it is one of the known disks
+  private async diskFromIndex(info: PhysicalDiskInfo, seen: Set<string>): Promise<Disk | null> {
+    if (!info.mountPath) return null
+    const index = parseIndex(await this.core.fs.readText(indexPath(info.mountPath)).catch(() => null))
+    for (const folder of index?.folders ?? []) {
+      const diskId = this.core.store.assignments.get(folder.assignmentId)?.diskId
+      const disk = diskId ? this.core.store.disks.get(diskId) : null
+      if (disk && !seen.has(disk.id) && sameDisk(disk, info)) return disk
+    }
+    return null
   }
 
-  private upsert(info: PhysicalDiskInfo, key: string, evaluation: HealthEvaluation, usage: VolumeUsage | null, result: ScanResult): string {
+  // A disk already matched in this scan is never matched again: two disks of one USB box can share a serial
+  private findExisting(info: PhysicalDiskInfo, key: string, seen: Set<string>): Disk | null {
+    const byKey = this.core.store.disks.findByIdentity(key)
+    if (byKey && !seen.has(byKey.id)) return byKey
+    return this.core.store.disks.list().find((d) => !seen.has(d.id) && !d.identityKey.startsWith('device:') && sameDisk(d, info)) ?? null
+  }
+
+  private upsert(info: PhysicalDiskInfo, key: string, evaluation: HealthEvaluation, usage: VolumeUsage | null, result: ScanResult, seen: Set<string>, hint: Disk | null): string {
     const { store, events } = this.core
     const now = this.core.clock.now()
     const nowIso = now.toISOString()
-    const existing = this.findExisting(info, key)
+    const existing = hint ?? this.findExisting(info, key, seen)
 
     let disk: Disk
     if (!existing) {
