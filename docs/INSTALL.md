@@ -21,7 +21,9 @@ El servicio y el helper quedan como tareas programadas que arrancan con Windows 
 
 ## 1. Conseguir el instalador
 
-**Opción A: construirlo en tu PC.** Necesitas Node 22.13 o superior. Desde la raíz del repositorio:
+**Opción A: descargarlo de GitHub.** En [github.com/RenatoLetelier/Custodio/releases/latest](https://github.com/RenatoLetelier/Custodio/releases/latest), descarga `Custodio-<versión>-win-x64.exe` desde **Assets**. Cada tag `v*` que se sube (por ejemplo `git tag v0.1.0` y `git push origin v0.1.0`) hace que GitHub Actions construya y publique uno nuevo. El repositorio es público, así que los releases también lo son.
+
+**Opción B: construirlo tú.** Necesitas Node 22.13 o superior. Desde la raíz del repositorio:
 
 ```powershell
 npm ci
@@ -30,12 +32,12 @@ npm run dist:win
 
 El instalador queda en `packages\custodio-ui\dist\Custodio-0.1.0-win-x64.exe`.
 
-**Opción B: desde GitHub Releases.** Al subir un tag `v*` (por ejemplo `git tag v0.1.0` y `git push origin v0.1.0`), GitHub Actions construye el instalador y lo publica en la página de Releases del repositorio. El repositorio es público, así que el release también lo es.
+**En otro equipo** (por ejemplo, un mini PC que guarda los discos), instálalo en ese equipo. Custodio solo atiende en `127.0.0.1`: la ventana se abre ahí mismo, con monitor o por Escritorio remoto, y no se puede manejar desde otro PC de la red. El servicio corre aunque nadie haya iniciado sesión.
 
 ## 2. Instalar
 
 1. Haz doble clic en `Custodio-0.1.0-win-x64.exe`.
-2. El instalador no está firmado, así que Windows puede mostrar "Windows protegió su PC". Pulsa **Más información** y luego **Ejecutar de todas formas**.
+2. El instalador no está firmado. Al descargarlo, el navegador puede avisar que el archivo no se descarga con frecuencia: elige **Conservar**. Al abrirlo, Windows puede mostrar "Windows protegió su PC": pulsa **Más información** y luego **Ejecutar de todas formas**.
 3. Elige la carpeta (la de siempre es `C:\Program Files\Custodio`) y acepta el aviso de permisos de administrador.
 4. Al terminar, deja marcada la opción de abrir Custodio.
 
