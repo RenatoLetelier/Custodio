@@ -12,9 +12,16 @@ export const SECTIONS: { id: SectionId; label: MessageKey; description: MessageK
   { id: 'settings', label: 'nav.settings', description: 'sections.settings.description' }
 ]
 
-export const NavigationContext = createContext<(section: SectionId) => void>(() => undefined)
+// What a section should open when another one sends you there: a project to edit, or a new one
+export type Intent = { kind: 'editProject'; projectId: string } | { kind: 'newProject'; diskId?: string }
 
-export const useNavigate = (): ((section: SectionId) => void) => use(NavigationContext)
+export const NavigationContext = createContext<(section: SectionId, intent?: Intent) => void>(() => undefined)
+
+export const useNavigate = (): ((section: SectionId, intent?: Intent) => void) => use(NavigationContext)
+
+export const IntentContext = createContext<{ intent: Intent | null; clear: () => void }>({ intent: null, clear: () => undefined })
+
+export const useIntent = () => use(IntentContext)
 
 // "Lo haré más tarde" holds while the window stays open
 export const FirstRunContext = createContext<{ postponed: boolean; setPostponed: (value: boolean) => void }>({ postponed: false, setPostponed: () => undefined })

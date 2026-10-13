@@ -5,7 +5,7 @@ import type { Disk, Plan } from '../api/types'
 import { Badge, Disclosure, EmptyState, ErrorNotice, PreviewDialog, ProgressBar, Semaphore, type PreviewProps } from '../components/ui'
 import { t, type MessageKey } from '../i18n'
 import { formatBytes, formatNumber, formatPercent } from '../i18n/format'
-import { diskName, diskStatus, suggestedAction } from '../lib/disks'
+import { diskName, diskStatus, folderPath, suggestedAction } from '../lib/disks'
 import { useNavigate } from '../navigation'
 import { useAppState } from '../state/AppState'
 
@@ -59,6 +59,10 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
   const { refresh, projects } = useAppState()
   const navigate = useNavigate()
   const [error, setError] = useState<unknown>(null)
+  const [editing, setEditing] = useState(false)
+  // A project with a scheduled copy changes its folders in its own form, not by pulling the disk from under it
+  const [inUse, setInUse] = useState<string | null>(null)
+  const uses = disk.assignments.map((a) => ({ ...a, project: projects.find((p) => p.project.id === a.projectId) }))
   const status = diskStatus(disk)
   const action = suggestedAction(disk)
   const usedPercent = disk.capacity ? (disk.capacity.usedBytes / Math.max(1, disk.capacity.totalBytes)) * 100 : 0
@@ -84,6 +88,11 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
 
   const retire = async (): Promise<void> => {
     setError(null)
+    const scheduled = uses.find((u) => u.project && u.project.policies.length > 0)
+    if (scheduled?.project) {
+      setInUse(scheduled.project.project.id)
+      return
+    }
     try {
       const byProject = new Map<string, string[]>()
       for (const a of disk.assignments) byProject.set(a.projectId, [...(byProject.get(a.projectId) ?? []), a.assignmentId])
@@ -138,24 +147,47 @@ function DiskCard({ disk, onPreview }: { disk: Disk; onPreview: (pending: Pendin
         </div>
       )}
 
+      {uses.length > 0 && (
+        <ul className="disk-card__uses" aria-label={t('disks.usedIn')}>
+          {uses.map((u) => (
+            <li key={u.assignmentId}>
+              {t(u.role === 'storage' ? 'disks.use.storage' : 'disks.use.backup', { project: u.project?.project.name ?? '', folder: folderPath(disk, u.folder) })}
+            </li>
+          ))}
+        </ul>
+      )}
+
       <div className="disk-card__action" data-testid="disk-action" data-action={action}>
         {action === 'repair' && (
           <button type="button" className="btn btn--primary" onClick={() => void repair()}>
             {t('disks.action.repair')}
           </button>
         )}
-        {action === 'use' && (
-          <button type="button" className="btn btn--primary" onClick={() => navigate(projects.length === 0 ? 'overview' : 'projects')}>
+        {action !== 'repair' && action !== 'none' && <p className="disk-card__hint">{t(`disks.suggest.${action}` as MessageKey)}</p>}
+        <button type="button" className="btn btn--sm" aria-expanded={editing} aria-controls={domId('edit', disk.id)} onClick={() => setEditing(!editing)}>
+          {t('disks.action.edit')}
+        </button>
+      </div>
+      {editing && (
+        <div id={domId('edit', disk.id)} className="disk-card__edit" data-testid="disk-edit">
+          <button type="button" className="btn btn--sm" onClick={() => navigate('projects', { kind: 'newProject', diskId: disk.id })}>
             {t('disks.action.use')}
           </button>
-        )}
-        {action !== 'repair' && action !== 'use' && <p className="disk-card__hint">{t(`disks.action.${action}` as MessageKey)}</p>}
-        {disk.state === 'assigned' && (
-          <button type="button" className="btn btn--danger-outline btn--sm" onClick={() => void retire()}>
-            {t('disks.action.retire')}
+          {disk.state === 'assigned' && (
+            <button type="button" className="btn btn--danger-outline btn--sm" onClick={() => void retire()}>
+              {t('disks.action.retire')}
+            </button>
+          )}
+        </div>
+      )}
+      {inUse && (
+        <div className="alert alert--warn-inline" role="status">
+          <p>{t('disks.retire.inUse', { project: projects.find((p) => p.project.id === inUse)?.project.name ?? '' })}</p>
+          <button type="button" className="btn btn--sm" onClick={() => navigate('projects', { kind: 'editProject', projectId: inUse })}>
+            {t('disks.retire.editProject')}
           </button>
-        )}
-      </div>
+        </div>
+      )}
       {error !== null && <ErrorNotice error={error} />}
 
       <TechnicalDetails disk={disk} />

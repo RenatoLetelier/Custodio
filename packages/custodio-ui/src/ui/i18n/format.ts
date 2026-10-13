@@ -61,3 +61,9 @@ export function formatDuration(ms: number): string {
   if (minutes < 60) return t('common.minutes', { count: minutes })
   return t('common.hours', { count: formatNumber(minutes / 60) })
 }
+
+// A folder on a disk as Windows writes it: "D:\lc\prod"
+export function formatFolder(root: string, folder: string): string {
+  const inside = folder.split(/[\\/]+/).filter(Boolean).join('\\')
+  return record(inside === '' ? root : `${root.replace(/[\\/]+$/, '')}\\${inside}`)
+}

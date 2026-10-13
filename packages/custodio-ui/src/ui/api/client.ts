@@ -7,7 +7,7 @@ export interface ServiceBridge {
 
 declare global {
   interface Window {
-    custodio?: { platform: string; service?: ServiceBridge | null }
+    custodio?: { platform: string; service?: ServiceBridge | null; dataDir?: string; chooseFolder?: () => Promise<string | null>; openLogs?: () => Promise<void> }
   }
 }
 

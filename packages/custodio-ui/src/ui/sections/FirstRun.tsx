@@ -40,7 +40,8 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
 
   const choiceOf = (disk: Disk): Choice => choices[disk.id] ?? left?.assignments.find((a) => a.diskId === disk.id)?.role ?? presetChoices(preset, usable)[disk.id] ?? 'none'
   const withRole = (role: Choice) => usable.filter((d) => choiceOf(d) === role)
-  const valid = withRole('storage').length > 0 && withRole('backup').length > 0
+  // The assistant backs up one whole disk, with the same paths on each backup disk; more folders or disks go in Proyectos
+  const valid = withRole('storage').length === 1 && withRole('backup').length > 0
   const risky = usable.some((d) => d.health === 'red' && choiceOf(d) !== 'none')
 
   const choosePreset = (next: Preset): void => {
@@ -63,30 +64,17 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
     setBusy(true)
     setError(null)
     try {
-      // Every step can be repeated: a project or disks left by an earlier attempt are reused, never doubled
+      // One plan for the whole setup: it is applied entirely or not at all. A project left half done by an older
+      // version is completed instead of doubled
       const current = unfinishedSetup((await api<{ projects: ProjectView[] }>('GET', '/v1/projects')).projects)
-      const projectId = current?.project.id ?? (await api<ProjectView>('POST', '/v1/projects', { name: t('wizard.projectName') })).project.id
-      const kept = (current?.assignments ?? []).filter((a) => usable.some((d) => d.id === a.diskId))
-      const actions = [
-        ...kept.filter((a) => choiceOf(usable.find((d) => d.id === a.diskId)!) !== a.role).map((a) => ({ type: 'remove_assignment', assignmentId: a.id })),
-        ...usable
-          .filter((d) => choiceOf(d) !== 'none' && !kept.some((a) => a.diskId === d.id && a.role === choiceOf(d)))
-          .map((d) => ({ type: 'add_assignment', diskId: d.id, folder: choiceOf(d) === 'storage' ? '' : t('wizard.backupFolder'), role: choiceOf(d) }))
-      ]
-      if (actions.length > 0) {
-        const { plan } = await api<{ plan: Plan }>('POST', `/v1/projects/${projectId}/plans`, { actions })
-        await api('POST', `/v1/plans/${plan.id}/confirm`, { confirm: true })
-      }
-      const view = await api<ProjectView>('GET', `/v1/projects/${projectId}`)
-      if (view.policies.length === 0) {
-        await api('POST', `/v1/projects/${projectId}/policies`, {
-          name: t('wizard.policyName'),
-          sources: view.assignments.filter((a) => a.role === 'storage').map((a) => a.id),
-          destinations: view.assignments.filter((a) => a.role === 'backup').map((a) => a.id),
-          cron: toCron(DEFAULT_SCHEDULE),
-          timezone: systemTimeZone()
-        })
-      }
+      const { plan } = await api<{ plan: Plan }>('POST', '/v1/setups', {
+        ...(current ? { projectId: current.project.id } : {}),
+        name: t('wizard.projectName'),
+        sources: withRole('storage').map((d) => ({ diskId: d.id, folder: '' })),
+        destinations: withRole('backup').map((d) => d.id),
+        schedule: { cron: toCron(DEFAULT_SCHEDULE), timezone: systemTimeZone() }
+      })
+      await api('POST', `/v1/plans/${plan.id}/confirm`, { confirm: true })
       await refresh()
     } catch (e) {
       setError(e)
@@ -195,7 +183,7 @@ export function FirstRun({ onLater }: { onLater: () => void }) {
                 ))}
               </div>
             )}
-            {usable.length > 0 && !valid && <p className="form-hint form-hint--warn">{t('wizard.disks.needBoth')}</p>}
+            {usable.length > 0 && !valid && <p className="form-hint form-hint--warn">{t(withRole('storage').length > 1 ? 'wizard.disks.oneStorage' : 'wizard.disks.needBoth')}</p>}
             {risky && <p className="form-hint form-hint--warn">{t('wizard.disks.redDisk')}</p>}
             <div className="actions">
               <button type="button" className="btn" onClick={() => setStep('preset')}>

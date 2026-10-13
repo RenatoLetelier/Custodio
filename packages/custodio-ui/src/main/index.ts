@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, normalize, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { BrowserWindow, app, ipcMain, nativeTheme, net, protocol } from 'electron'
+import { BrowserWindow, app, dialog, ipcMain, nativeTheme, net, protocol, shell as desktop } from 'electron'
 import { t } from '../ui/i18n'
 import { modes, windowSize } from '../ui/theme/tokens'
 import { createElectronShell } from './shell'
@@ -12,9 +12,11 @@ import { StatusMonitor, type ServiceAddress } from './status'
 const RENDERER_DIR = join(__dirname, '../renderer')
 protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 
+// Where the service keeps its database, token and logs
+const dataDir = process.env.CUSTODIO_DATA_DIR ?? (process.platform === 'win32' ? join(process.env.ProgramData ?? 'C:\\ProgramData', 'Custodio') : join(homedir(), '.custodio'))
+
 // The service runs on its own; the interface only needs its loopback address and token
 function serviceAddress(): ServiceAddress | null {
-  const dataDir = process.env.CUSTODIO_DATA_DIR ?? (process.platform === 'win32' ? join(process.env.ProgramData ?? 'C:\\ProgramData', 'Custodio') : join(homedir(), '.custodio'))
   try {
     const token = process.env.CUSTODIO_TOKEN ?? readFileSync(join(dataDir, 'service-token'), 'utf8').trim()
     return { baseUrl: process.env.CUSTODIO_SERVICE_URL ?? 'http://127.0.0.1:47600', token }
@@ -70,7 +72,17 @@ void app.whenReady().then(() => {
 
   const address = serviceAddress()
   ipcMain.on('custodio:bridge', (event) => {
-    event.returnValue = { platform: process.platform, service: address }
+    event.returnValue = { platform: process.platform, service: address, dataDir }
+  })
+  ipcMain.handle('custodio:choose-folder', async (event) => {
+    const owner = BrowserWindow.fromWebContents(event.sender)
+    const options = { title: t('projects.editor.chooseFolder'), properties: ['openDirectory' as const] }
+    const picked = owner ? await dialog.showOpenDialog(owner, options) : await dialog.showOpenDialog(options)
+    return picked.canceled ? null : (picked.filePaths[0] ?? null)
+  })
+  // Only this one folder: the renderer cannot ask to open anything else
+  ipcMain.handle('custodio:open-logs', async () => {
+    await desktop.openPath(join(dataDir, 'logs'))
   })
 
   const shell = createElectronShell(showWindow, () => app.quit())

@@ -64,7 +64,7 @@ test('U8 los errores dicen qué pasó y qué hacer, sin códigos crudos', async 
   await openApp(page, service)
   await goTo(page, es.nav.backups)
   await page.getByRole('button', { name: es.backups.empty.action }).click()
-  await page.getByRole('button', { name: es.backups.form.submit }).click()
+  await page.getByRole('button', { name: es.projects.editor.review }).click()
   const notice = page.getByTestId('error-notice')
   await expect(notice).toContainText(es.errors.topology_invalid.title)
   await expect(notice).toContainText(es.errors.topology_invalid.hint)

@@ -16,12 +16,24 @@
     "runningCount": "{count} en curso"
   },
   "sections": {
-    "overview": { "description": "Cómo está todo y qué conviene hacer ahora." },
-    "disks": { "description": "La salud y el espacio de cada disco." },
-    "projects": { "description": "Qué carpeta de cada disco guarda archivos y cuál guarda copias." },
-    "backups": { "description": "Copias de seguridad automáticas: cuándo se hacen y dónde." },
-    "activity": { "description": "Lo que Custodio está haciendo ahora y lo que ya hizo." },
-    "settings": { "description": "Apariencia, conexión y recuperación de proyectos." }
+    "overview": {
+      "description": "Cómo está todo y qué conviene hacer ahora."
+    },
+    "disks": {
+      "description": "La salud y el espacio de cada disco."
+    },
+    "projects": {
+      "description": "Qué respaldar, dónde guardar las copias y cuándo hacerlas."
+    },
+    "backups": {
+      "description": "Las copias programadas de cada proyecto: cuándo se hacen y cómo salieron."
+    },
+    "activity": {
+      "description": "Lo que Custodio está haciendo ahora y lo que ya hizo."
+    },
+    "settings": {
+      "description": "El servicio, la revisión de los discos, la aplicación y la recuperación de proyectos."
+    }
   },
   "connection": {
     "connecting": "Conectando con Custodio…",
@@ -196,7 +208,6 @@
     "stepOf": "Paso {step} de {total}",
     "later": "Lo haré más tarde",
     "projectName": "Mis archivos",
-    "backupFolder": "Copias de Custodio",
     "policyName": "Copia diaria",
     "welcome": {
       "title": "Te damos la bienvenida a Custodio",
@@ -207,16 +218,26 @@
     "preset": {
       "title": "¿Cuántas copias quieres?",
       "body": "Luego podrás cambiarlo.",
-      "oneCopy": { "title": "Un disco y una copia", "body": "Tus archivos en un disco y una copia de seguridad en otro." },
-      "twoCopies": { "title": "Un disco y dos copias", "body": "Más tranquilidad: dos copias en dos discos distintos." },
-      "custom": { "title": "Personalizado", "body": "Tú decides qué hace cada disco." }
+      "oneCopy": {
+        "title": "Un disco y una copia",
+        "body": "Tus archivos en un disco y una copia de seguridad en otro."
+      },
+      "twoCopies": {
+        "title": "Un disco y dos copias",
+        "body": "Más tranquilidad: dos copias en dos discos distintos."
+      },
+      "custom": {
+        "title": "Personalizado",
+        "body": "Tú decides qué hace cada disco."
+      }
     },
     "disks": {
       "title": "¿Para qué usarás cada disco?",
       "body": "Elige uno para guardar tus archivos y al menos otro para las copias.",
       "roleFor": "Uso del disco {disk}",
       "needBoth": "Elige al menos un disco para guardar archivos y otro para la copia de seguridad.",
-      "redDisk": "Uno de los discos elegidos está fallando. Mejor no confiarle tus archivos."
+      "redDisk": "Uno de los discos elegidos está fallando. Mejor no confiarle tus archivos.",
+      "oneStorage": "Elige un solo disco para guardar archivos. Para respaldar más discos o carpetas, crea proyectos en la sección Proyectos."
     },
     "noDisks": {
       "title": "No encontramos discos para usar",
@@ -272,7 +293,9 @@
     "retire": {
       "title": "Dejar de usar {disk}",
       "summary": "Custodio dejará de usar el disco {disk}. Tus archivos se quedan en el disco.",
-      "confirm": "Dejar de usar"
+      "confirm": "Dejar de usar",
+      "inUse": "«{project}» guarda o copia en este disco. Para dejar de usarlo, cambia las carpetas o los discos de ese proyecto.",
+      "editProject": "Editar el proyecto"
     },
     "state": {
       "unassigned": "Sin asignar",
@@ -289,25 +312,26 @@
     "fullIn": "A este ritmo se llenará en unos {days} días.",
     "action": {
       "repair": "Revisar y reparar",
-      "use": "Usar este disco",
+      "use": "Usar en un proyecto",
+      "none": "Nada que hacer.",
+      "retire": "Dejar de usar este disco",
+      "edit": "Editar"
+    },
+    "usedIn": "Dónde se usa",
+    "use": {
+      "storage": "{project}: guarda {folder}",
+      "backup": "{project}: copia en {folder}"
+    },
+    "suggest": {
+      "use": "No se usa en ningún proyecto.",
       "reconnect": "Conéctalo para seguir haciendo copias.",
       "freeSpace": "Libera espacio o agrega otro disco para las copias.",
-      "checkCable": "Revisa el cable o el adaptador USB.",
-      "none": "Nada que hacer.",
-      "retire": "Dejar de usar este disco"
-    }
+      "checkCable": "Revisa el cable o el adaptador USB."
+    },
+    "offlineFolder": "{disk}: {folder}",
+    "wholeDisk": "todo el disco"
   },
   "projects": {
-    "add": {
-      "button": "Agregar un disco",
-      "title": "Agregar un disco a {project}",
-      "previewTitle": "Revisa el cambio",
-      "confirm": "Agregar",
-      "review": "Ver cómo quedaría",
-      "noDisks": "No hay discos libres. Conecta otro disco y búscalo en la sección Discos.",
-      "disk": "Disco",
-      "role": "¿Para qué lo usarás?"
-    },
     "delete": {
       "button": "Borrar de las copias",
       "title": "Borrar de las copias de seguridad",
@@ -324,30 +348,62 @@
       "no_source": "«{folder}» todavía no recibe copias. Crea una copia programada que la use.",
       "no_backup": "«{folder}» no tiene copia de seguridad. Si el disco falla, se pierde."
     },
-    "noFolders": "Este proyecto todavía no usa ningún disco.",
-    "columns": {
-      "folder": "Carpeta",
-      "disk": "Disco",
-      "role": "Uso"
-    },
-    "role": {
-      "storage": "Guarda archivos",
-      "backup": "Copia de seguridad"
-    },
     "empty": {
-      "title": "Todavía no tienes proyectos",
-      "body": "Un proyecto reúne tus discos: dónde guardas tus archivos y dónde sus copias.",
-      "action": "Abrir el asistente"
+      "title": "Crea tu primer proyecto",
+      "body": "Un proyecto dice qué carpetas respaldar, en qué discos guardar las copias y cuándo hacerlas.",
+      "action": "Nuevo proyecto"
+    },
+    "new": "Nuevo proyecto",
+    "card": {
+      "sources": "Se respalda",
+      "copies": "Copias en",
+      "noCopies": "Todavía no tiene discos de respaldo.",
+      "when": "Cuándo",
+      "noSchedule": "Sin copia programada",
+      "next": "Próxima: {when}",
+      "last": "Última copia: {status}, {when}",
+      "never": "Todavía no se ha copiado",
+      "edit": "Editar"
+    },
+    "editor": {
+      "titleNew": "Nuevo proyecto",
+      "titleEdit": "Editar «{name}»",
+      "name": "Nombre del proyecto",
+      "namePlaceholder": "Localcloud",
+      "sources": "Qué respaldar",
+      "sourcesHint": "Elige una o más carpetas. Cada una se copia con la misma ruta en los discos de respaldo: si un disco falla, el de respaldo lo reemplaza tal cual.",
+      "disk": "Disco",
+      "folder": "Carpeta",
+      "wholeDisk": "Todo el disco",
+      "chooseFolder": "Elegir carpeta",
+      "folderOutside": "Esa carpeta no está en un disco conectado que Custodio conozca. Conéctalo y búscalo en Discos.",
+      "addSource": "Agregar otra carpeta",
+      "remove": "Quitar",
+      "removeSource": "Quitar la carpeta {n}",
+      "destinations": "Dónde guardar las copias",
+      "destinationsHint": "Las copias quedan en las mismas rutas que el original, en cada disco que elijas.",
+      "destinationN": "Respaldo {n}",
+      "copiesOf": "Copias en el respaldo {n}",
+      "removeDestination": "Quitar el respaldo {n}",
+      "repeatedDestination": "Ese disco ya está elegido para otro respaldo.",
+      "addDestination": "Agregar otro disco de respaldo",
+      "review": "Revisar y guardar",
+      "checking": "Revisando…",
+      "previewTitle": "Así quedará",
+      "scheduleLine": "Horario: {schedule}.",
+      "confirm": "Guardar proyecto",
+      "danger": "Zona de cuidado",
+      "dangerHint": "Ninguna de estas acciones toca tus archivos originales."
+    },
+    "remove": {
+      "button": "Eliminar proyecto",
+      "previewTitle": "Eliminar «{name}»",
+      "confirm": "Eliminar proyecto",
+      "acknowledge": "Entiendo que Custodio dejará de respaldar este proyecto."
     }
   },
   "backups": {
     "form": {
-      "defaultName": "Copia de seguridad",
-      "title": "Nueva copia programada",
-      "project": "Proyecto",
-      "name": "Nombre",
-      "what": "Qué copiar",
-      "where": "Dónde guardar la copia",
       "when": "Cuándo",
       "daily": "Cada día",
       "weekly": "Algunos días de la semana",
@@ -361,12 +417,13 @@
       "deleted": "Lo que se borra del original",
       "deletedMode": {
         "append": "Se queda en la copia para siempre",
-        "retention": "Pasa a la papelera de la copia y se elimina después de unos días"
+        "retention": "Pasa a la papelera de la copia y se elimina después de unos días",
+        "mirror": "Se borra también de la copia (modo espejo)"
       },
       "retentionDays": "Días en la papelera",
       "retentionHint": "Así la copia no guarda para siempre lo que ya no está en el original. Si una copia fuera a quitar de una vez más archivos que el límite de abajo, se detiene sin borrar nada.",
       "maxDelete": "Límite: porcentaje de archivos de la copia que puede quitar de una vez",
-      "submit": "Crear copia programada"
+      "mirrorHint": "La copia queda igual al original. Antes de guardarlo verás qué significa y tendrás que confirmarlo."
     },
     "paused": "En pausa",
     "retentionNote": "Lo que se borra del original queda {days} días en la papelera de la copia.",
@@ -398,15 +455,17 @@
       "confirm": "Activar modo espejo",
       "acknowledge": "Entiendo que el modo espejo borra en la copia lo que ya no está en el original."
     },
-    "new": "Nueva copia programada",
+    "new": "Programar un respaldo",
     "empty": {
       "title": "Todavía no hay copias programadas",
       "noProjects": "Primero elige qué discos guardan tus archivos y cuáles sus copias.",
-      "body": "Crea una copia automática: por ejemplo, cada día a las 3:00.",
+      "body": "Programa la copia de un proyecto: por ejemplo, cada día a las 3:00.",
       "needDisks": "Para programar una copia hace falta un disco que guarde archivos y otro para la copia.",
-      "action": "Crear la primera",
+      "action": "Programar un respaldo",
       "toProjects": "Ir a Proyectos"
-    }
+    },
+    "intro": "Cuándo se copia cada proyecto y cómo salió la última vez. Qué se copia y dónde se cambia en su proyecto.",
+    "change": "Cambiar qué y dónde se copia"
   },
   "activity": {
     "name": {
@@ -462,15 +521,12 @@
   },
   "settings": {
     "appearance": {
-      "title": "Apariencia",
-      "body": "Custodio usa el tema claro u oscuro de tu sistema."
+      "body": "Sigue el tema claro u oscuro de Windows."
     },
     "connection": {
-      "title": "Conexión",
       "connecting": "Conectando con el servicio de Custodio…",
       "online": "Conectado con el servicio de Custodio.",
       "offline": "Sin conexión con el servicio de Custodio.",
-      "independent": "El servicio trabaja aunque cierres esta ventana: las copias programadas siguen a su hora.",
       "address": "Dirección del servicio"
     },
     "advanced": "Avanzado",
@@ -482,10 +538,34 @@
       "noneHint": "Conecta los discos que usabas con Custodio y vuelve a buscar.",
       "recover": "Recuperar"
     },
-    "about": {
-      "title": "Acerca de Custodio",
-      "body": "Custodio cuida tus discos y tus copias de seguridad.",
-      "version": "Versión {version}"
+    "service": {
+      "title": "Servicio de Custodio",
+      "intro": "Es el que hace las copias y vigila los discos. Trabaja aunque cierres esta ventana.",
+      "state": "Estado",
+      "since": "Funcionando desde",
+      "version": "Versión"
+    },
+    "disks": {
+      "title": "Revisión de los discos",
+      "check": "Revisión automática",
+      "checkHint": "La salud y el espacio de cada disco, cada 6 horas y al iniciar Windows.",
+      "checkNow": "Revisar ahora",
+      "checked": "Revisión pedida."
+    },
+    "app": {
+      "title": "Aplicación",
+      "theme": "Tema",
+      "startup": "Al iniciar sesión",
+      "startupValue": "Custodio se abre en la bandeja, junto al reloj. Puedes quitarlo en Configuración de Windows › Aplicaciones › Inicio.",
+      "alerts": "Avisos",
+      "alertsValue": "Una notificación si un disco empeora o si una copia falla."
+    },
+    "data": {
+      "title": "Registros y datos",
+      "intro": "Dónde guarda Custodio su configuración y su registro de actividad, por si hay que revisar un problema.",
+      "folder": "Carpeta de datos",
+      "logs": "Registros",
+      "openLogs": "Abrir carpeta"
     }
   },
   "tray": {

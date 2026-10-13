@@ -36,7 +36,15 @@ test('U4 cada disco muestra semáforo, una frase simple, espacio usado y libre y
     await expect(disk.getByTestId('disk-space')).toContainText(es.disks.used.split('{value}')[0] + used)
     await expect(disk.getByTestId('disk-space')).toContainText(es.disks.free.replace('{value}', free))
     await expect(disk.getByTestId('disk-action')).toHaveAttribute('data-action', action)
-    await expect(disk.getByRole('button', { name: action === 'repair' ? es.disks.action.repair : es.disks.action.use })).toBeVisible()
+    if (action === 'repair') {
+      await expect(disk.getByRole('button', { name: es.disks.action.repair })).toBeVisible()
+    } else {
+      // Using a disk is not urgent: the card says so, and the button waits behind Editar so it is not pressed by accident
+      await expect(disk.getByTestId('disk-action')).toContainText(es.disks.suggest.use)
+      await expect(disk.getByRole('button', { name: es.disks.action.use })).toHaveCount(0)
+      await disk.getByRole('button', { name: es.disks.action.edit }).click()
+      await expect(disk.getByRole('button', { name: es.disks.action.use })).toBeVisible()
+    }
 
     // Technical details exist but stay folded
     const toggle = disk.getByRole('button', { name: es.disks.technical.title })

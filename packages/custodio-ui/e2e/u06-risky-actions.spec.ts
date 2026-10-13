@@ -25,6 +25,9 @@ test('U6 retirar un disco muestra antes qué pasará y exige confirmación', asy
   await goTo(page, es.nav.disks)
   const card = page.getByTestId('disk-card').filter({ has: page.getByRole('heading', { name: 'Disco viejo 1 TB' }) })
 
+  // Kept behind Editar, so it is never pressed by accident
+  await expect(card.getByRole('button', { name: es.disks.action.retire })).toHaveCount(0)
+  await card.getByRole('button', { name: es.disks.action.edit }).click()
   await card.getByRole('button', { name: es.disks.action.retire }).click()
   await expect(dialog(page)).toContainText(es.disks.retire.summary.replace('{disk}', 'Disco viejo 1 TB'))
   await expect(dialog(page)).toContainText('Sus archivos se quedan en el disco.')
@@ -62,9 +65,13 @@ test('U6 reparar un disco muestra antes qué pasará y exige confirmación', asy
 test('U6 activar el modo espejo muestra antes qué pasará y exige confirmación explícita', async ({ page, service }) => {
   const { policyId } = await service.standardProject()
   await openApp(page, service)
-  await goTo(page, es.nav.backups)
+  await goTo(page, es.nav.projects)
+  await page.getByTestId('project-card').getByRole('button', { name: es.projects.card.edit }).click()
+  const form = page.getByTestId('project-editor')
+  await form.getByRole('button', { name: es.backups.form.advanced }).click()
+  await form.getByRole('radio', { name: es.backups.form.deletedMode.mirror }).check()
 
-  await page.getByRole('button', { name: es.backups.mirror.button }).click()
+  await form.getByRole('button', { name: es.projects.editor.review }).click()
   await expect(dialog(page)).toContainText(es.backups.mirror.line1)
   const confirm = dialog(page).getByRole('button', { name: es.backups.mirror.confirm })
   await expect(confirm).toBeDisabled()
@@ -72,10 +79,11 @@ test('U6 activar el modo espejo muestra antes qué pasará y exige confirmación
   await dialog(page).getByRole('button', { name: es.common.cancel }).click()
   expect((await service.api('GET', `/v1/policies/${policyId}`)).mode).toBe('append')
 
-  await page.getByRole('button', { name: es.backups.mirror.button }).click()
+  await form.getByRole('button', { name: es.projects.editor.review }).click()
   await dialog(page).getByRole('checkbox', { name: es.backups.mirror.acknowledge }).check()
   await confirm.click()
   await expect(dialog(page)).toHaveCount(0)
+  await goTo(page, es.nav.backups)
   await expect(page.getByTestId('policy-card').getByText(es.backups.mode.mirror)).toBeVisible()
   expect(await service.api('GET', `/v1/policies/${policyId}`)).toMatchObject({ mode: 'mirror', mirrorConfirmed: true })
 })
@@ -88,6 +96,10 @@ test('U6 borrar de las copias muestra antes qué se borrará y exige confirmaci�
   expect(existsSync(copy)).toBe(true)
   await openApp(page, service)
   await goTo(page, es.nav.projects)
+  // In the project's danger zone, apart from its everyday buttons
+  await expect(page.getByRole('button', { name: es.projects.delete.button })).toHaveCount(0)
+  await page.getByTestId('project-card').getByRole('button', { name: es.projects.card.edit }).click()
+  await expect(page.getByTestId('danger-zone')).toBeVisible()
 
   await page.getByRole('button', { name: es.projects.delete.button }).click()
   await dialog(page).getByRole('textbox', { name: es.projects.delete.path }).fill('cumple.jpg')
