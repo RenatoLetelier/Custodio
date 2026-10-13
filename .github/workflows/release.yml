@@ -24,7 +24,7 @@ jobs:
 
       - name: Versión desde el tag
         shell: bash
-        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --workspace custodio-ui
+        run: npm pkg set "version=${GITHUB_REF_NAME#v}" --workspace custodio-ui
 
       - run: npm run typecheck
       - run: npm test
