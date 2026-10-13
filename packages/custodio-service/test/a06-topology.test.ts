@@ -53,6 +53,13 @@ describe('topologías', () => {
     expect(validateTopology({ assignments, policies: [policy('p', ['a'], ['c'])], disks, sizes }).valid).toBe(true)
   })
 
+  it('A6 el aviso de falta de espacio dice cuánto hace falta y cuánto hay disponible', () => {
+    const assignments = [assignment('a', 'd1', 'storage'), assignment('c', 'd3', 'backup')]
+    const sizes = { sourceBytes: new Map([['a', 1_234 * GB]]), destinationCapacity: new Map([['c', 850 * GB]]) }
+    const [violation] = validateTopology({ assignments, policies: [policy('p', ['a'], ['c'])], disks, sizes }).errors
+    expect(violation?.message).toMatch(/hacen falta 1,2 TB y hay 850 GB disponibles\.$/)
+  })
+
   it('A6 rechaza un origen sin rol almacenamiento y un destino sin rol respaldo', () => {
     const result = validateTopology({
       assignments: [assignment('x', 'd1', 'backup'), assignment('y', 'd2', 'storage')],

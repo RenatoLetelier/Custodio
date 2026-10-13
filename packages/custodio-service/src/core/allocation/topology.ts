@@ -1,5 +1,6 @@
 import { foldersOverlap } from '../shared/paths.js'
 import type { Assignment, Disk } from '../shared/model.js'
+import { readableBytes } from '../shared/units.js'
 
 export type TopologyCode =
   | 'empty_policy'
@@ -125,7 +126,7 @@ export function validateTopology({ assignments, policies, disks, sizes }: Topolo
         errors.push({
           code: 'insufficient_capacity',
           assignmentId: destinationId,
-          message: `"${byId.get(destinationId)?.label ?? destinationId}" no tiene espacio para todo lo que debe copiar.`
+          message: `"${byId.get(destinationId)?.label ?? destinationId}" no tiene espacio para todo lo que debe copiar: hacen falta ${readableBytes(needed)} y hay ${readableBytes(capacity)} disponibles.`
         })
       }
     }
