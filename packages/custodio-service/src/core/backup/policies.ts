@@ -19,7 +19,8 @@ export class PolicyService {
     return policy
   }
 
-  private async validate(projectId: string, config: PolicyConfig, policyId: string): Promise<void> {
+  // Folders are measured only when what is copied, or where, changes: pausing or a new schedule stay instant
+  private async validate(projectId: string, config: PolicyConfig, policyId: string, measure: boolean): Promise<void> {
     validateSchedule(config.cron, config.timezone)
     if (config.mode === 'mirror' && !config.mirrorConfirmed) {
       throw new DomainError('mirror_not_allowed', 'El modo espejo borra en la copia lo que ya no está en el original: actívalo con la confirmación explícita.')
@@ -30,7 +31,7 @@ export class PolicyService {
     }
     const others = this.core.store.policies.byProject(projectId).filter((p) => p.id !== policyId)
     const policies = [...others, { id: policyId, name: config.name, sources: config.sources, destinations: config.destinations }]
-    const topology = this.projects.structural(assignments, policies, await this.projects.measure(assignments, policies))
+    const topology = this.projects.structural(assignments, policies, measure ? await this.projects.measure(assignments, policies) : undefined)
     if (!topology.valid) throw new DomainError('topology_invalid', 'Esta copia programada no es válida.', topology)
   }
 
@@ -38,7 +39,7 @@ export class PolicyService {
     this.projects.get(projectId)
     const config = PolicyConfigSchema.parse(input)
     const id = this.core.newId()
-    await this.validate(projectId, config, id)
+    await this.validate(projectId, config, id, true)
     const policy: Policy = {
       ...config,
       id,
@@ -58,7 +59,8 @@ export class PolicyService {
     const current = this.get(policyId)
     const { id, projectId, createdAt, lastScheduledFor, lastSuccessAt, lastVerifiedAt, overdueSince, ...config } = current
     const next = PolicyConfigSchema.parse({ ...config, ...patch })
-    await this.validate(projectId, next, id)
+    const sameIds = (a: string[], b: string[]) => a.length === b.length && a.every((value) => b.includes(value))
+    await this.validate(projectId, next, id, !sameIds(next.sources, current.sources) || !sameIds(next.destinations, current.destinations))
     const scheduleChanged = next.cron !== current.cron || next.timezone !== current.timezone
     const updated: Policy = {
       ...next,

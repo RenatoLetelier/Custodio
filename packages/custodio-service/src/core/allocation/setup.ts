@@ -72,7 +72,8 @@ export class ProjectSetupService {
     return { plan: this.plans.create('setup', setup.projectId ?? null, { setup }, preview, actor), topology: draft.topology }
   }
 
-  private async draft(setup: ProjectSetup): Promise<Draft> {
+  // Measuring the folders is only needed to review a plan; confirming it checks the rest again
+  private async draft(setup: ProjectSetup, measure = true): Promise<Draft> {
     const { store, fs } = this.core
     const project = setup.projectId ? (store.projects.get(setup.projectId) ?? null) : null
     if (setup.projectId && !project) throw notFound('el proyecto', setup.projectId)
@@ -131,14 +132,14 @@ export class ProjectSetupService {
     }
     const policyId = policyBefore?.id ?? this.core.newId()
     const policies = [{ id: policyId, name: policy.name, sources: policy.sources, destinations: policy.destinations }]
-    const topology = this.projects.structural(assignments, policies, await this.projects.measure(assignments, policies))
+    const topology = this.projects.structural(assignments, policies, measure ? await this.projects.measure(assignments, policies) : undefined)
     const removed = current.filter((a) => !assignments.some((n) => n.id === a.id))
     return { project, assignments, removed, policy, policyId, extraPolicies, topology }
   }
 
   private async apply(plan: Plan, actor: string): Promise<Record<string, unknown>> {
     const setup = ProjectSetupSchema.parse(plan.payload.setup)
-    const draft = await this.draft(setup)
+    const draft = await this.draft(setup, false)
     if (!draft.topology.valid) throw new DomainError('topology_invalid', 'El proyecto cambió desde que se revisó.', draft.topology)
     const { store, clock } = this.core
     const now = clock.now().toISOString()

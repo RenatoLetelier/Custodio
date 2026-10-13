@@ -90,6 +90,10 @@ export class FaultyFileSystem implements FileSystemPort {
     this.alive()
     return this.inner.walk(root, skipDir, onUnreadable)
   }
+  async sizeOf(root: string, skipDir?: (relPath: string) => boolean) {
+    this.alive()
+    return this.inner.sizeOf(root, skipDir)
+  }
   async stat(path: string) {
     this.alive()
     return this.inner.stat(path)
