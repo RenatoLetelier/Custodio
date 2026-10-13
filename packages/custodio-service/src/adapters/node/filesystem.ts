@@ -113,6 +113,8 @@ export class NodeFileSystem implements FileSystemPort {
   }
 
   async mkdirp(path: string): Promise<void> {
+    // A drive root always exists, and on Windows mkdir refuses it with EPERM (a project with a whole disk)
+    if (dirname(path) === path) return
     await mkdir(path, { recursive: true })
   }
 

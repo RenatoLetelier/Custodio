@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import { NodeFileSystem } from '../src/adapters/node/filesystem.js'
 import { VolumeDescriptorSchema } from '../src/core/allocation/descriptor.js'
 import { hashTree } from './support/backup.js'
 import { createHarness, type Harness, type SimDisk } from './support/harness.js'
@@ -31,6 +32,10 @@ const descriptorOf = async (disk: SimDisk, folder: string) =>
   VolumeDescriptorSchema.parse(JSON.parse(await readFile(join(disk.mountPath, ...folder.split('/').filter(Boolean), '.diskmanager', 'volume.json'), 'utf8')))
 
 describe('autodescripción', () => {
+  it('A17 un disco entero guarda su volume.json en la raíz de la unidad, aunque Windows no deje crearla con mkdir', async () => {
+    await expect(new NodeFileSystem().mkdirp(resolve('/'))).resolves.toBeUndefined()
+  })
+
   it('A17 cada carpeta asignada contiene .diskmanager/volume.json con todo su proyecto', async () => {
     h = await createHarness()
     const { main, copyA, copyB, projectId } = await threeDiskProject()
